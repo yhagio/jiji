@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"jiji/views"
 	"net/http"
-
-	"github.com/gorilla/schema"
 )
 
 type Users struct {
@@ -15,7 +13,7 @@ type Users struct {
 type SignupForm struct {
 	Username string `schema:"username"`
 	Email    string `schema:"email"`
-	Passowrd string `schema:"password"`
+	Password string `schema:"password"`
 }
 
 func NewUsers() *Users {
@@ -33,13 +31,11 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 
 // POST /signup
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
+	var signupForm SignupForm
+	if err := parseForm(r, &signupForm); err != nil {
 		panic(err)
 	}
-	decoder := schema.NewDecoder()
-	signupForm := SignupForm{}
-	if err := decoder.Decode(&signupForm, r.PostForm); err != nil {
-		panic(err)
-	}
-	fmt.Fprint(w, signupForm)
+	fmt.Fprintln(w, "Username is", signupForm.Username)
+	fmt.Fprintln(w, "Email is", signupForm.Email)
+	fmt.Fprintln(w, "Password is", signupForm.Password)
 }
