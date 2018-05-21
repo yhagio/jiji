@@ -1,6 +1,7 @@
 package main
 
 import (
+	"jiji/controllers"
 	"jiji/views"
 	"net/http"
 
@@ -10,7 +11,6 @@ import (
 var (
 	homeView    *views.View
 	contactView *views.View
-	signupView  *views.View
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -29,25 +29,17 @@ func contact(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func signup(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	err := signupView.Render(w, nil)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func main() {
 	homeView = views.NewView("bootstrap",
 		"views/home.gohtml")
 	contactView = views.NewView("bootstrap",
 		"views/contact.gohtml")
-	signupView = views.NewView("bootstrap",
-		"views/signup.gohtml")
+
+	usersController := controllers.NewUsers()
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", home)
 	r.HandleFunc("/contact", contact)
-	r.HandleFunc("/signup", signup)
+	r.HandleFunc("/signup", usersController.New)
 	http.ListenAndServe(":3000", r)
 }
