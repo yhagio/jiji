@@ -29,9 +29,22 @@ func (us *UserService) close() error {
 }
 
 // For development, testing only
-func (us *UserService) DestructiveReset() {
-	us.db.DropTableIfExists(&User{})
-	us.db.AutoMigrate(&User{})
+// Recreate user table
+func (us *UserService) DestructiveReset() error {
+	err := us.db.DropTableIfExists(&User{}).Error
+	if err != nil {
+		return err
+	}
+	return us.AutoMigrate()
+}
+
+// Auto-migrate user table
+func (us *UserService) AutoMigrate() error {
+	err := us.db.AutoMigrate(&User{}).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Get an user by id
