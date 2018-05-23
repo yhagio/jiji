@@ -24,7 +24,7 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 	return &UserService{db: db}, nil
 }
 
-func (us *UserService) close() error {
+func (us *UserService) Close() error {
 	return us.db.Close()
 }
 
