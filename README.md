@@ -1,8 +1,16 @@
-# Dev setup
+# JIJI
+
+Web App built with Go and Postgres
+
+## Dev setup
 
 * Install Postgres
 
-### Hot reloading
+```bash
+go get
+```
+
+### (Optional) Hot reloading
 
 Go hot-reloading, so no need to stop and restart server
 
@@ -14,10 +22,4 @@ In this app repo, run `fresh`
 
 ```bash
 fresh
-```
-
-## Tips
-
-```bash
-go get -u github.com/gorilla/mux # -u flag -> get latest version
 ```
