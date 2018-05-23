@@ -1,14 +1,8 @@
 package models
 
 import (
-	"errors"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-)
-
-var (
-	ErrNotFound = errors.New("models: resource not found")
 )
 
 type User struct {
@@ -43,19 +37,42 @@ func (us *UserService) DestructiveReset() {
 // Get an user by id
 func (us *UserService) GetById(id uint) (*User, error) {
 	var user User
-	err := us.db.Where("id = ?", id).First(&user).Error
-
-	switch err {
-	case nil:
-		return &user, nil
-	case gorm.ErrRecordNotFound:
-		return nil, ErrNotFound
-	default:
+	db := us.db.Where("id = ?", id)
+	err := First(db, &user)
+	if err != nil {
 		return nil, err
 	}
+	return &user, nil
+}
+
+// Get an user by email
+func (us *UserService) GetByEmail(email string) (*User, error) {
+	var user User
+	db := us.db.Where("email = ?", email)
+	err := First(db, &user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 // Create an user
 func (us *UserService) Create(user *User) error {
 	return us.db.Create(user).Error
+}
+
+// Update an user
+func (us *UserService) Update(user *User) error {
+	return us.db.Save(user).Error
+}
+
+// Delete an user
+func (us *UserService) Delete(id uint) error {
+	if id == 0 {
+		return ErrInvalidID
+	}
+	user := &User{
+		Model: gorm.Model{ID: id},
+	}
+	return us.db.Delete(user).Error
 }
