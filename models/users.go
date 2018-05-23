@@ -34,6 +34,13 @@ func (us *UserService) close() error {
 	return us.db.Close()
 }
 
+// For development, testing only
+func (us *UserService) DestructiveReset() {
+	us.db.DropTableIfExists(&User{})
+	us.db.AutoMigrate(&User{})
+}
+
+// Get an user by id
 func (us *UserService) GetById(id uint) (*User, error) {
 	var user User
 	err := us.db.Where("id = ?", id).First(&user).Error
@@ -48,7 +55,7 @@ func (us *UserService) GetById(id uint) (*User, error) {
 	}
 }
 
-func (us *UserService) DestructiveReset() {
-	us.db.DropTableIfExists(&User{})
-	us.db.AutoMigrate(&User{})
+// Create an user
+func (us *UserService) Create(user *User) error {
+	return us.db.Create(user).Error
 }
