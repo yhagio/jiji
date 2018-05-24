@@ -6,6 +6,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var userPwPepper = "super-secret-pepper-for-password"
+
 type User struct {
 	gorm.Model
 	Username     string `gorm:"not null; unique_index"`
@@ -74,12 +76,17 @@ func (us *UserService) GetByEmail(email string) (*User, error) {
 
 // Create an user
 func (us *UserService) Create(user *User) error {
-	hasedBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hasedBytes, err := bcrypt.GenerateFromPassword(
+		[]byte(user.Password+userPwPepper),
+		bcrypt.DefaultCost)
+
 	if err != nil {
 		return err
 	}
+
 	user.PasswordHash = string(hasedBytes)
 	user.Password = ""
+
 	return us.db.Create(user).Error
 }
 
