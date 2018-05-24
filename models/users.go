@@ -52,6 +52,25 @@ func (us *UserService) AutoMigrate() error {
 	return nil
 }
 
+// Authentication
+func (us *UserService) Authenticate(email, password string) (*User, error) {
+	user, err := us.GetByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(password+userPwPepper),
+	)
+
+	if err != nil {
+		return nil, ErrInvalidEmailOrPassword
+	}
+
+	return user, nil
+}
+
 // Get an user by id
 func (us *UserService) GetById(id uint) (*User, error) {
 	var user User

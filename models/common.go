@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("models: resource not found")
-	ErrInvalidID = errors.New("models: ID provided was invalid")
+	ErrNotFound               = errors.New("models: resource not found")
+	ErrInvalidID              = errors.New("models: ID provided was invalid")
+	ErrInvalidEmailOrPassword = errors.New("model: Email or Password is incorrect")
 )
 
 func First(db *gorm.DB, dst interface{}) error {
