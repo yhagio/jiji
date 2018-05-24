@@ -32,7 +32,7 @@ func main() {
 	us.AutoMigrate()
 
 	staticController := controllers.NewStatic()
-	usersController := controllers.NewUsers()
+	usersController := controllers.NewUsers(us)
 
 	r := mux.NewRouter()
 	r.Handle("/", staticController.HomeView).Methods("GET")

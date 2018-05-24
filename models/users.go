@@ -3,12 +3,15 @@ package models
 import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
 	gorm.Model
-	Username string `gorm:"not null; unique_index"`
-	Email    string `gorm:"not null; unique_index"`
+	Username     string `gorm:"not null; unique_index"`
+	Email        string `gorm:"not null; unique_index"`
+	Password     string `gorm:"-"`
+	PasswordHash string `gorm:"not null`
 }
 
 type UserService struct {
@@ -71,6 +74,12 @@ func (us *UserService) GetByEmail(email string) (*User, error) {
 
 // Create an user
 func (us *UserService) Create(user *User) error {
+	hasedBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.PasswordHash = string(hasedBytes)
+	user.Password = ""
 	return us.db.Create(user).Error
 }
 

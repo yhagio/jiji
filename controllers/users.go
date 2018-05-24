@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"fmt"
+	"jiji/models"
 	"jiji/views"
 	"net/http"
 )
 
 type Users struct {
 	NewView *views.View
+	us      *models.UserService
 }
 
 type SignupForm struct {
@@ -16,9 +18,10 @@ type SignupForm struct {
 	Password string `schema:"password"`
 }
 
-func NewUsers() *Users {
+func NewUsers(us *models.UserService) *Users {
 	return &Users{
 		NewView: views.NewView("bootstrap", "users/new"),
+		us:      us,
 	}
 }
 
@@ -35,7 +38,15 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	if err := parseForm(r, &signupForm); err != nil {
 		panic(err)
 	}
-	fmt.Fprintln(w, "Username is", signupForm.Username)
-	fmt.Fprintln(w, "Email is", signupForm.Email)
-	fmt.Fprintln(w, "Password is", signupForm.Password)
+	user := models.User{
+		Username: signupForm.Username,
+		Email:    signupForm.Email,
+		Password: signupForm.Password,
+	}
+	err := u.us.Create(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprint(w, user)
 }
