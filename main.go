@@ -39,5 +39,7 @@ func main() {
 	r.Handle("/contact", staticController.ContactView).Methods("GET")
 	r.HandleFunc("/signup", usersController.New).Methods("GET")
 	r.HandleFunc("/signup", usersController.Create).Methods("POST")
+	r.Handle("/login", usersController.LoginView).Methods("GET")
+	r.HandleFunc("/login", usersController.Login).Methods("POST")
 	http.ListenAndServe(":3000", r)
 }
