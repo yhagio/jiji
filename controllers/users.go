@@ -71,5 +71,10 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cookie := http.Cookie{
+		Name:  "Email",
+		Value: user.Email,
+	}
+	http.SetCookie(w, &cookie)
 	fmt.Fprint(w, "Login", user)
 }
