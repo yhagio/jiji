@@ -21,8 +21,9 @@ psql
 ## Dev setup
 
 ```bash
-go get         # Install dependencies
-go run main.go # Starts the application
+go get            # Install dependencies
+go run main.go    # Starts the application
+godoc -http=:6060 # Documentation http://localhost:6060/pkg/jiji/
 ```
 
 ### (Optional) Hot reloading
