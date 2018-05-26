@@ -1,6 +1,8 @@
 package models
 
 import (
+	"jiji/utils"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
@@ -8,16 +10,21 @@ import (
 
 var userPwPepper = "super-secret-pepper-for-password"
 
+const hmacSecretKey = "secret-hmac-key"
+
 type User struct {
 	gorm.Model
 	Username     string `gorm:"not null; unique_index"`
 	Email        string `gorm:"not null; unique_index"`
 	Password     string `gorm:"-"`
 	PasswordHash string `gorm:"not null`
+	Token        string `gorm:"-"`
+	TokenHash    string `gorm:"not null; unique_index"`
 }
 
 type UserService struct {
-	db *gorm.DB
+	db   *gorm.DB
+	hmac utils.HMAC
 }
 
 func NewUserService(connectionInfo string) (*UserService, error) {
@@ -26,7 +33,12 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 		return nil, err
 	}
 	db.LogMode(true)
-	return &UserService{db: db}, nil
+
+	hmac := utils.NewHMAC(hmacSecretKey)
+	return &UserService{
+		db:   db,
+		hmac: hmac,
+	}, nil
 }
 
 func (us *UserService) Close() error {
@@ -106,11 +118,24 @@ func (us *UserService) Create(user *User) error {
 	user.PasswordHash = string(hasedBytes)
 	user.Password = ""
 
+	// Generate token, hash it, and save it
+	if user.Token == "" {
+		token, err := utils.GenerateToken()
+		if err != nil {
+			return err
+		}
+		user.Token = token
+	}
+	user.TokenHash = us.hmac.Hash(user.Token)
+
 	return us.db.Create(user).Error
 }
 
 // Update an user
 func (us *UserService) Update(user *User) error {
+	if user.Token != "" {
+		user.TokenHash = us.hmac.Hash(user.Token)
+	}
 	return us.db.Save(user).Error
 }
 
