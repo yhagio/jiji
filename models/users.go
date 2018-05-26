@@ -64,7 +64,7 @@ func (us *UserService) AutoMigrate() error {
 	return nil
 }
 
-// Authentication
+// Authenticate user. Checks email and password.
 func (us *UserService) Authenticate(email, password string) (*User, error) {
 	user, err := us.GetByEmail(email)
 	if err != nil {

@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"fmt"
 	"jiji/models"
+	"jiji/utils"
 	"jiji/views"
 	"net/http"
 )
@@ -55,7 +55,13 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprint(w, user)
+	err = u.signIn(w, &user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Redirect to the home page
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 // POST /login
@@ -71,10 +77,32 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = u.signIn(w, user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Redirect to the home page
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// Set token if the user doesn't have one and set it to cookie
+func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
+	if user.Token == "" {
+		token, err := utils.GenerateToken()
+		if err != nil {
+			return err
+		}
+		user.Token = token
+		err = u.us.Update(user)
+		if err != nil {
+			return err
+		}
+	}
 	cookie := http.Cookie{
-		Name:  "Email",
-		Value: user.Email,
+		Name:  "authToken",
+		Value: user.Token,
 	}
 	http.SetCookie(w, &cookie)
-	fmt.Fprint(w, "Login", user)
+	return nil
 }
