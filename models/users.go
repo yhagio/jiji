@@ -105,6 +105,18 @@ func (us *UserService) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
+// Get an user by token
+func (us *UserService) GetByToken(token string) (*User, error) {
+	var user User
+	tokenHash := us.hmac.Hash(token)
+	db := us.db.Where("tokenHash = ?", tokenHash)
+	err := First(db, &user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // Create an user
 func (us *UserService) Create(user *User) error {
 	hasedBytes, err := bcrypt.GenerateFromPassword(
