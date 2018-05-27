@@ -1,6 +1,8 @@
 package models
 
 import (
+	"jiji/utils"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
@@ -28,15 +30,21 @@ type UserService interface {
 }
 
 func NewUserService(connectionInfo string) (UserService, error) {
-	ug, err := NewUserGorm(connectionInfo)
+	ug, err := newUserGorm(connectionInfo)
 	if err != nil {
 		return nil, err
 	}
+
+	hmac := utils.NewHMAC(hmacSecretKey)
+	uv := &userValidator{
+		hmac:   hmac,
+		UserDB: ug,
+	}
+
 	return &userService{
-		UserDB: &userValidator{
-			UserDB: ug,
-		},
+		UserDB: uv,
 	}, nil
+
 }
 
 var _ UserService = &userService{}
