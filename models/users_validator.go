@@ -28,16 +28,11 @@ func (uv *userValidator) GetByToken(token string) (*User, error) {
 }
 
 func (uv *userValidator) Create(user *User) error {
-	hasedBytes, err := bcrypt.GenerateFromPassword(
-		[]byte(user.Password+userPwPepper),
-		bcrypt.DefaultCost)
-
+	err := userValidationFuncs(user,
+		uv.generatePasswordHash)
 	if err != nil {
 		return err
 	}
-
-	user.PasswordHash = string(hasedBytes)
-	user.Password = ""
 
 	// Generate token, hash it, and save it
 	if user.Token == "" {
@@ -52,6 +47,12 @@ func (uv *userValidator) Create(user *User) error {
 }
 
 func (uv *userValidator) Update(user *User) error {
+	err := userValidationFuncs(user,
+		uv.generatePasswordHash)
+	if err != nil {
+		return err
+	}
+
 	if user.Token != "" {
 		user.TokenHash = uv.hmac.Hash(user.Token)
 	}
@@ -63,4 +64,37 @@ func (uv *userValidator) Delete(id uint) error {
 		return ErrInvalidID
 	}
 	return uv.UserDB.Delete(id)
+}
+
+func (uv *userValidator) generatePasswordHash(user *User) error {
+	// If password is not changed, do nothing
+	if user.Password == "" {
+		return nil
+	}
+
+	hasedBytes, err := bcrypt.GenerateFromPassword(
+		[]byte(user.Password+userPwPepper),
+		bcrypt.DefaultCost)
+
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hasedBytes)
+	user.Password = ""
+	return nil
+}
+
+// Reusable validation functions runner / helper
+
+type userValidationFunc func(*User) error
+
+func userValidationFuncs(user *User, funcs ...userValidationFunc) error {
+	for _, fn := range funcs {
+		err := fn(user)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
