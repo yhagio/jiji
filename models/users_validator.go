@@ -23,39 +23,34 @@ func (uv *userValidator) GetById(id uint) (*User, error) {
 }
 
 func (uv *userValidator) GetByToken(token string) (*User, error) {
-	tokenHash := uv.hmac.Hash(token)
-	return uv.UserDB.GetByToken(tokenHash)
+	user := User{Token: token}
+	err := userValidationFuncs(&user, uv.hmacHashToken)
+	if err != nil {
+		return nil, err
+	}
+	return uv.UserDB.GetByToken(user.TokenHash)
 }
 
 func (uv *userValidator) Create(user *User) error {
 	err := userValidationFuncs(user,
-		uv.generatePasswordHash)
+		uv.generatePasswordHash,
+		uv.setTokenIfNotSet,
+		uv.hmacHashToken)
 	if err != nil {
 		return err
 	}
 
-	// Generate token, hash it, and save it
-	if user.Token == "" {
-		token, err := utils.GenerateToken()
-		if err != nil {
-			return err
-		}
-		user.Token = token
-	}
-	user.TokenHash = uv.hmac.Hash(user.Token)
 	return uv.UserDB.Create(user)
 }
 
 func (uv *userValidator) Update(user *User) error {
 	err := userValidationFuncs(user,
-		uv.generatePasswordHash)
+		uv.generatePasswordHash,
+		uv.hmacHashToken)
 	if err != nil {
 		return err
 	}
 
-	if user.Token != "" {
-		user.TokenHash = uv.hmac.Hash(user.Token)
-	}
 	return uv.UserDB.Update(user)
 }
 
@@ -82,6 +77,28 @@ func (uv *userValidator) generatePasswordHash(user *User) error {
 
 	user.PasswordHash = string(hasedBytes)
 	user.Password = ""
+	return nil
+}
+
+func (uv *userValidator) setTokenIfNotSet(user *User) error {
+	if user.Token != "" {
+		return nil
+	}
+
+	token, err := utils.GenerateToken()
+	if err != nil {
+		return err
+	}
+	user.Token = token
+
+	return nil
+}
+
+func (uv *userValidator) hmacHashToken(user *User) error {
+	if user.Token == "" {
+		return nil
+	}
+	user.TokenHash = uv.hmac.Hash(user.Token)
 	return nil
 }
 
