@@ -55,9 +55,13 @@ func (uv *userValidator) Update(user *User) error {
 }
 
 func (uv *userValidator) Delete(id uint) error {
-	if id == 0 {
-		return ErrInvalidID
+	var user User
+	user.ID = id
+	err := userValidationFuncs(&user, uv.idGreaterThan(0))
+	if err != nil {
+		return err
 	}
+
 	return uv.UserDB.Delete(id)
 }
 
@@ -100,6 +104,16 @@ func (uv *userValidator) hmacHashToken(user *User) error {
 	}
 	user.TokenHash = uv.hmac.Hash(user.Token)
 	return nil
+}
+
+// Closure way, dynamically validates with argument
+func (uv *userValidator) idGreaterThan(num uint) userValidationFunc {
+	return userValidationFunc(func(user *User) error {
+		if user.ID <= num {
+			return ErrInvalidID
+		}
+		return nil
+	})
 }
 
 // Reusable validation functions runner / helper
