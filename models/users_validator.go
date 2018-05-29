@@ -58,7 +58,8 @@ func (uv *userValidator) Create(user *User) error {
 		uv.hmacHashToken,
 		uv.requireEmail,
 		uv.normalizeEmail,
-		uv.emailFormat)
+		uv.checkEmailFormat,
+		uv.checkEmailAvailability)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,8 @@ func (uv *userValidator) Update(user *User) error {
 		uv.hmacHashToken,
 		uv.requireEmail,
 		uv.normalizeEmail,
-		uv.emailFormat)
+		uv.checkEmailFormat,
+		uv.checkEmailAvailability)
 	if err != nil {
 		return err
 	}
@@ -157,12 +159,29 @@ func (uv *userValidator) requireEmail(user *User) error {
 	return nil
 }
 
-func (uv *userValidator) emailFormat(user *User) error {
+func (uv *userValidator) checkEmailFormat(user *User) error {
 	if user.Email == "" {
 		return nil
 	}
 	if !uv.emailRegex.MatchString(user.Email) {
 		return ErrEmailInvalid
+	}
+	return nil
+}
+
+func (uv *userValidator) checkEmailAvailability(user *User) error {
+	existing, err := uv.GetByEmail(user.Email)
+	if err == ErrNotFound {
+		// Email is available if the email is not found in our db
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	// Email is found but user id is different
+	if user.ID != existing.ID {
+		return ErrEmailTaken
 	}
 	return nil
 }
