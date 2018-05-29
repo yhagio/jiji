@@ -36,10 +36,8 @@ func NewUserService(connectionInfo string) (UserService, error) {
 	}
 
 	hmac := utils.NewHMAC(hmacSecretKey)
-	uv := &userValidator{
-		hmac:   hmac,
-		UserDB: ug,
-	}
+
+	uv := newUserValidator(ug, hmac)
 
 	return &userService{
 		UserDB: uv,

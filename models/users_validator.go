@@ -3,6 +3,8 @@ package models
 import (
 	"errors"
 	"jiji/utils"
+	"regexp"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -12,7 +14,16 @@ import (
 // UserDB in our interface chain.
 type userValidator struct {
 	UserDB
-	hmac utils.HMAC
+	hmac       utils.HMAC
+	emailRegex *regexp.Regexp
+}
+
+func newUserValidator(udb UserDB, hmac utils.HMAC) *userValidator {
+	return &userValidator{
+		UserDB:     udb,
+		hmac:       hmac,
+		emailRegex: regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`),
+	}
 }
 
 func (uv *userValidator) GetById(id uint) (*User, error) {
@@ -31,11 +42,23 @@ func (uv *userValidator) GetByToken(token string) (*User, error) {
 	return uv.UserDB.GetByToken(user.TokenHash)
 }
 
+func (uv *userValidator) GetByEmail(email string) (*User, error) {
+	user := User{Email: email}
+	err := userValidationFuncs(&user, uv.normalizeEmail)
+	if err != nil {
+		return nil, err
+	}
+	return uv.UserDB.GetByEmail(user.Email)
+}
+
 func (uv *userValidator) Create(user *User) error {
 	err := userValidationFuncs(user,
 		uv.generatePasswordHash,
 		uv.setTokenIfNotSet,
-		uv.hmacHashToken)
+		uv.hmacHashToken,
+		uv.requireEmail,
+		uv.normalizeEmail,
+		uv.emailFormat)
 	if err != nil {
 		return err
 	}
@@ -46,7 +69,10 @@ func (uv *userValidator) Create(user *User) error {
 func (uv *userValidator) Update(user *User) error {
 	err := userValidationFuncs(user,
 		uv.generatePasswordHash,
-		uv.hmacHashToken)
+		uv.hmacHashToken,
+		uv.requireEmail,
+		uv.normalizeEmail,
+		uv.emailFormat)
 	if err != nil {
 		return err
 	}
@@ -114,6 +140,31 @@ func (uv *userValidator) idGreaterThan(num uint) userValidationFunc {
 		}
 		return nil
 	})
+}
+
+// Normalize Email
+func (uv *userValidator) normalizeEmail(user *User) error {
+	// trim space and make it lowercase
+	user.Email = strings.ToLower(user.Email)
+	user.Email = strings.TrimSpace(user.Email)
+	return nil
+}
+
+func (uv *userValidator) requireEmail(user *User) error {
+	if user.Email == "" {
+		return ErrEmailRequired
+	}
+	return nil
+}
+
+func (uv *userValidator) emailFormat(user *User) error {
+	if user.Email == "" {
+		return nil
+	}
+	if !uv.emailRegex.MatchString(user.Email) {
+		return ErrEmailInvalid
+	}
+	return nil
 }
 
 // Reusable validation functions runner / helper
