@@ -13,6 +13,8 @@ var (
 	ErrEmailRequired          = errors.New("models: email is required")
 	ErrEmailInvalid           = errors.New("models: email is not valid")
 	ErrEmailTaken             = errors.New("models: email is already taken")
+	ErrPasswordRequired       = errors.New("models: password is required")
+	ErrPasswordTooShort       = errors.New("models: password must be at least 8 characters long")
 )
 
 func First(db *gorm.DB, dst interface{}) error {

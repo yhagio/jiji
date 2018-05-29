@@ -53,7 +53,10 @@ func (uv *userValidator) GetByEmail(email string) (*User, error) {
 
 func (uv *userValidator) Create(user *User) error {
 	err := userValidationFuncs(user,
+		uv.passwordRequired,
+		uv.passwordMinLength,
 		uv.generatePasswordHash,
+		uv.passwordHashRequired,
 		uv.setTokenIfNotSet,
 		uv.hmacHashToken,
 		uv.requireEmail,
@@ -69,7 +72,10 @@ func (uv *userValidator) Create(user *User) error {
 
 func (uv *userValidator) Update(user *User) error {
 	err := userValidationFuncs(user,
+		uv.passwordRequired,
+		uv.passwordMinLength,
 		uv.generatePasswordHash,
+		uv.passwordHashRequired,
 		uv.hmacHashToken,
 		uv.requireEmail,
 		uv.normalizeEmail,
@@ -144,6 +150,10 @@ func (uv *userValidator) idGreaterThan(num uint) userValidationFunc {
 	})
 }
 
+///////////////////////////////////////////////////////////
+// Eamil validation
+///////////////////////////////////////////////////////////
+
 // Normalize Email
 func (uv *userValidator) normalizeEmail(user *User) error {
 	// trim space and make it lowercase
@@ -186,7 +196,37 @@ func (uv *userValidator) checkEmailAvailability(user *User) error {
 	return nil
 }
 
-// Reusable validation functions runner / helper
+///////////////////////////////////////////////////////////
+// Password validation
+///////////////////////////////////////////////////////////
+
+func (uv *userValidator) passwordRequired(user *User) error {
+	if user.Password == "" {
+		return ErrPasswordRequired
+	}
+	return nil
+}
+
+func (uv *userValidator) passwordMinLength(user *User) error {
+	if user.Password == "" {
+		return nil
+	}
+	if len(user.Password) < 8 {
+		return ErrPasswordTooShort
+	}
+	return nil
+}
+
+func (uv *userValidator) passwordHashRequired(user *User) error {
+	if user.PasswordHash == "" {
+		return ErrPasswordRequired
+	}
+	return nil
+}
+
+///////////////////////////////////////////////////////////
+// Reusable validation functions helper
+///////////////////////////////////////////////////////////
 
 type userValidationFunc func(*User) error
 
