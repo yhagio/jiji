@@ -58,7 +58,9 @@ func (uv *userValidator) Create(user *User) error {
 		uv.generatePasswordHash,
 		uv.passwordHashRequired,
 		uv.setTokenIfNotSet,
+		uv.tokenMinBytes,
 		uv.hmacHashToken,
+		uv.tokenHashRequired,
 		uv.requireEmail,
 		uv.normalizeEmail,
 		uv.checkEmailFormat,
@@ -72,11 +74,12 @@ func (uv *userValidator) Create(user *User) error {
 
 func (uv *userValidator) Update(user *User) error {
 	err := userValidationFuncs(user,
-		uv.passwordRequired,
 		uv.passwordMinLength,
 		uv.generatePasswordHash,
 		uv.passwordHashRequired,
+		uv.tokenMinBytes,
 		uv.hmacHashToken,
+		uv.tokenHashRequired,
 		uv.requireEmail,
 		uv.normalizeEmail,
 		uv.checkEmailFormat,
@@ -148,6 +151,27 @@ func (uv *userValidator) idGreaterThan(num uint) userValidationFunc {
 		}
 		return nil
 	})
+}
+
+func (uv *userValidator) tokenMinBytes(user *User) error {
+	if user.Token == "" {
+		return nil
+	}
+	num, err := utils.NumberOfBytes(user.Token)
+	if err != nil {
+		return err
+	}
+	if num < 32 {
+		return ErrTokenTooShort
+	}
+	return nil
+}
+
+func (uv *userValidator) tokenHashRequired(user *User) error {
+	if user.TokenHash == "" {
+		return ErrTokenRequired
+	}
+	return nil
 }
 
 ///////////////////////////////////////////////////////////
