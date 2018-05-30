@@ -4,6 +4,7 @@ import (
 	"jiji/models"
 	"jiji/utils"
 	"jiji/views"
+	"log"
 	"net/http"
 )
 
@@ -41,23 +42,39 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 
 // POST /signup
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
+	var vd views.Data
 	var signupForm SignupForm
-	if err := parseForm(r, &signupForm); err != nil {
-		panic(err)
+
+	err := parseForm(r, &signupForm)
+	if err != nil {
+		log.Println(err)
+		vd.Alert = &views.Alert{
+			Level:   views.AlertLvlError,
+			Message: views.AlertMsgGeneric,
+		}
+		u.NewView.Render(w, vd)
+		return
 	}
+
 	user := models.User{
 		Username: signupForm.Username,
 		Email:    signupForm.Email,
 		Password: signupForm.Password,
 	}
-	err := u.us.Create(&user)
+
+	err = u.us.Create(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		vd.Alert = &views.Alert{
+			Level:   views.AlertLvlError,
+			Message: err.Error(),
+		}
+		u.NewView.Render(w, vd)
 		return
 	}
+
 	err = u.signIn(w, &user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 	// Redirect to the home page

@@ -12,9 +12,26 @@ var (
 	TemplateExt string = ".gohtml"
 )
 
+const (
+	AlertLvlError   = "danger"
+	AlertLvlWarning = "warning"
+	AlertLvlInfo    = "info"
+	AlertLvlSuccess = "success"
+	AlertMsgGeneric = "Something went wrong. Please try again. Contact us if the problem persists."
+)
+
 type View struct {
 	Template *template.Template
 	Layout   string
+}
+
+type Alert struct {
+	Level   string
+	Message string
+}
+type Data struct {
+	Alert *Alert
+	Yield interface{}
 }
 
 func NewView(layout string, files ...string) *View {
@@ -33,6 +50,16 @@ func NewView(layout string, files ...string) *View {
 }
 
 func (v *View) Render(w http.ResponseWriter, data interface{}) error {
+	w.Header().Set("Content-Type", "text/html")
+	switch data.(type) {
+	case Data:
+		// do nothing since already Data type
+	default:
+		// Wrap it for unknown data
+		data = Data{
+			Yield: data,
+		}
+	}
 	return v.Template.ExecuteTemplate(w, v.Layout, data)
 }
 

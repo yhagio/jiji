@@ -14,9 +14,10 @@
 
         <section class="section">
           <div class="container"> 
-            {{template "yield" .}}
-
-
+            {{if .Alert}}
+              {{template "alert" .Alert}}
+            {{end}}
+            {{template "yield" .Yield}}
             {{template "footer"}}
           </div>
         </section>
