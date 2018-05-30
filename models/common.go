@@ -1,22 +1,22 @@
 package models
 
 import (
-	"errors"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 )
 
-var (
-	ErrNotFound               = errors.New("models: resource not found")
-	ErrInvalidID              = errors.New("models: ID provided was invalid")
-	ErrInvalidEmailOrPassword = errors.New("model: Email or Password is incorrect")
-	ErrEmailRequired          = errors.New("models: email is required")
-	ErrEmailInvalid           = errors.New("models: email is not valid")
-	ErrEmailTaken             = errors.New("models: email is already taken")
-	ErrPasswordRequired       = errors.New("models: password is required")
-	ErrPasswordTooShort       = errors.New("models: password must be at least 8 characters long")
-	ErrTokenRequired          = errors.New("models: Token is required")
-	ErrTokenTooShort          = errors.New("models: Token must be at least 32 bytes")
+const (
+	ErrNotFound               modelError = "models: resource not found"
+	ErrInvalidID              modelError = "models: ID provided was invalid"
+	ErrInvalidEmailOrPassword modelError = "model: Email or Password is incorrect"
+	ErrEmailRequired          modelError = "models: email is required"
+	ErrEmailInvalid           modelError = "models: email is not valid"
+	ErrEmailTaken             modelError = "models: email is already taken"
+	ErrPasswordRequired       modelError = "models: password is required"
+	ErrPasswordTooShort       modelError = "models: password must be at least 8 characters long"
+	ErrTokenRequired          modelError = "models: Token is required"
+	ErrTokenTooShort          modelError = "models: Token must be at least 32 bytes"
 )
 
 func First(db *gorm.DB, dst interface{}) error {
@@ -25,4 +25,18 @@ func First(db *gorm.DB, dst interface{}) error {
 		return ErrNotFound
 	}
 	return err
+}
+
+type modelError string
+
+func (e modelError) Error() string {
+	return string(e)
+}
+
+// Creates public facing error message
+func (e modelError) Public() string {
+	cleanedStr := strings.Replace(string(e), "models: ", "", 1)
+	split := strings.Split(cleanedStr, " ")
+	split[0] = strings.Title(split[0]) // Capitalize first letter
+	return strings.Join(split, " ")
 }

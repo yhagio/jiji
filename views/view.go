@@ -2,6 +2,7 @@ package views
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"path/filepath"
 )
@@ -32,6 +33,28 @@ type Alert struct {
 type Data struct {
 	Alert *Alert
 	Yield interface{}
+}
+
+type PublicError interface {
+	error
+	Public() string
+}
+
+func (d *Data) SetAlert(err error) {
+	var msg string
+
+	publicErr, ok := err.(PublicError)
+	if ok {
+		msg = publicErr.Public()
+	} else {
+		log.Println(err)
+		msg = AlertMsgGeneric
+	}
+
+	d.Alert = &Alert{
+		Level:   AlertLvlError,
+		Message: msg,
+	}
 }
 
 func NewView(layout string, files ...string) *View {

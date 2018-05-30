@@ -4,7 +4,6 @@ import (
 	"jiji/models"
 	"jiji/utils"
 	"jiji/views"
-	"log"
 	"net/http"
 )
 
@@ -47,11 +46,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 
 	err := parseForm(r, &signupForm)
 	if err != nil {
-		log.Println(err)
-		vd.Alert = &views.Alert{
-			Level:   views.AlertLvlError,
-			Message: views.AlertMsgGeneric,
-		}
+		vd.SetAlert(err)
 		u.NewView.Render(w, vd)
 		return
 	}
@@ -64,10 +59,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 
 	err = u.us.Create(&user)
 	if err != nil {
-		vd.Alert = &views.Alert{
-			Level:   views.AlertLvlError,
-			Message: err.Error(),
-		}
+		vd.SetAlert(err)
 		u.NewView.Render(w, vd)
 		return
 	}
