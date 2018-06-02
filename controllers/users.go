@@ -75,20 +75,33 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 
 // POST /login
 func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
+	var vd views.Data
 	var loginForm LoginForm
 	if err := parseForm(r, &loginForm); err != nil {
-		panic(err)
+		vd.SetAlert(err)
+		u.LoginView.Render(w, vd)
+		return
 	}
 
 	user, err := u.us.Authenticate(loginForm.Email, loginForm.Password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch err {
+		case models.ErrNotFound:
+			vd.Alert = &views.Alert{
+				Level:   views.AlertLvlError,
+				Message: models.ErrNoUserWithEmail,
+			}
+		default:
+			vd.SetAlert(err)
+		}
+		u.LoginView.Render(w, vd)
 		return
 	}
 
 	err = u.signIn(w, user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		vd.SetAlert(err)
+		u.LoginView.Render(w, vd)
 		return
 	}
 	// Redirect to the home page

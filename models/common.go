@@ -9,7 +9,7 @@ import (
 const (
 	ErrNotFound               modelError = "models: resource not found"
 	ErrInvalidID              modelError = "models: ID provided was invalid"
-	ErrInvalidEmailOrPassword modelError = "model: Email or Password is incorrect"
+	ErrInvalidEmailOrPassword modelError = "models: Email or password is incorrect"
 	ErrEmailRequired          modelError = "models: email is required"
 	ErrEmailInvalid           modelError = "models: email is not valid"
 	ErrEmailTaken             modelError = "models: email is already taken"
@@ -17,6 +17,7 @@ const (
 	ErrPasswordTooShort       modelError = "models: password must be at least 8 characters long"
 	ErrTokenRequired          modelError = "models: Token is required"
 	ErrTokenTooShort          modelError = "models: Token must be at least 32 bytes"
+	ErrNoUserWithEmail        string     = "No user with the email is found"
 )
 
 func First(db *gorm.DB, dst interface{}) error {
