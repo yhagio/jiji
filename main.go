@@ -45,5 +45,6 @@ func main() {
 	r.HandleFunc("/login", usersController.Login).Methods("POST")
 	// Galleries
 	r.Handle("/galleries/new", galleriesController.New).Methods("GET")
+	r.HandleFunc("/galleries", galleriesController.Create).Methods("POST")
 	http.ListenAndServe(":3000", r)
 }
