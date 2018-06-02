@@ -102,14 +102,3 @@ func (ug *userGorm) AutoMigrate() error {
 	}
 	return nil
 }
-
-func newUserGorm(connectionInfo string) (*userGorm, error) {
-	db, err := gorm.Open("postgres", connectionInfo)
-	if err != nil {
-		return nil, err
-	}
-	db.LogMode(true)
-	return &userGorm{
-		db: db,
-	}, nil
-}

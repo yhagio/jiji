@@ -24,15 +24,15 @@ func main() {
 		host, port, user, password, dbname,
 	)
 	// Create User Service
-	us, err := models.NewUserService(psqlInfo)
+	services, err := models.NewServices(psqlInfo)
 	if err != nil {
 		panic(err)
 	}
-	defer us.Close()
-	us.AutoMigrate()
+	defer services.User.Close()
+	services.User.AutoMigrate()
 
 	staticController := controllers.NewStatic()
-	usersController := controllers.NewUsers(us)
+	usersController := controllers.NewUsers(services.User)
 
 	r := mux.NewRouter()
 	r.Handle("/", staticController.HomeView).Methods("GET")
