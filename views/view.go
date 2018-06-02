@@ -57,6 +57,13 @@ func (d *Data) SetAlert(err error) {
 	}
 }
 
+func (d *Data) AlertError(errMsg string) {
+	d.Alert = &Alert{
+		Level:   AlertLvlError,
+		Message: errMsg,
+	}
+}
+
 func NewView(layout string, files ...string) *View {
 	addTemplatePath(files)
 	addTemplateExt(files)

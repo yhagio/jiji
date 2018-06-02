@@ -87,10 +87,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case models.ErrNotFound:
-			vd.Alert = &views.Alert{
-				Level:   views.AlertLvlError,
-				Message: models.ErrNoUserWithEmail,
-			}
+			vd.AlertError(models.ErrNoUserWithEmail)
 		default:
 			vd.SetAlert(err)
 		}
