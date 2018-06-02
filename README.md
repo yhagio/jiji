@@ -2,8 +2,8 @@
 
 Web App built with Go and Postgres
 
-<img src="https://cdn-images-1.medium.com/max/600/1*i2skbfmDsHayHhqPfwt6pA.png" height="200px">
-<img src="https://raw.githubusercontent.com/docker-library/docs/01c12653951b2fe592c1f93a13b4e289ada0e3a1/postgres/logo.png" height="180px">
+<img src="https://cdn-images-1.medium.com/max/600/1*i2skbfmDsHayHhqPfwt6pA.png" height="200px" style="display: inline-block">
+<img src="https://raw.githubusercontent.com/docker-library/docs/01c12653951b2fe592c1f93a13b4e289ada0e3a1/postgres/logo.png" height="180px" style="display: inline-block">
 
 ### DB setup - Postgres (on Ubuntu)
 
