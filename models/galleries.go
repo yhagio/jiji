@@ -13,3 +13,19 @@ type Gallery struct {
 type GalleryService interface {
 	GalleryDB
 }
+
+func NewGalleryService(db *gorm.DB) GalleryService {
+	return &galleryService{
+		GalleryDB: &galleryValidator{
+			GalleryDB: &galleryGorm{
+				db: db,
+			},
+		},
+	}
+}
+
+var _ GalleryService = &galleryService{}
+
+type galleryService struct {
+	GalleryDB
+}

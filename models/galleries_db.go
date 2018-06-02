@@ -17,5 +17,5 @@ type GalleryDB interface {
 }
 
 func (gg *galleryGorm) Create(gallery *Gallery) error {
-	return nil
+	return gg.db.Create(gallery).Error
 }
