@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"jiji/controllers"
+	"jiji/middlewares"
 	"jiji/models"
 	"net/http"
 
@@ -30,21 +31,27 @@ func main() {
 	}
 	defer services.Close()
 	services.AutoMigrate()
+	requireUserMw := middlewares.RequireUser{
+		UserService: services.User,
+	}
 
-	staticController := controllers.NewStatic()
-	usersController := controllers.NewUsers(services.User)
-	galleriesController := controllers.NewGalleries(services.Gallery)
+	staticCtrl := controllers.NewStatic()
+	usersCtrl := controllers.NewUsers(services.User)
+	galleriesCtrl := controllers.NewGalleries(services.Gallery)
 
 	r := mux.NewRouter()
-	r.Handle("/", staticController.HomeView).Methods("GET")
-	r.Handle("/contact", staticController.ContactView).Methods("GET")
+	r.Handle("/", staticCtrl.HomeView).Methods("GET")
+	r.Handle("/contact", staticCtrl.ContactView).Methods("GET")
+
 	// Users
-	r.HandleFunc("/signup", usersController.New).Methods("GET")
-	r.HandleFunc("/signup", usersController.Create).Methods("POST")
-	r.Handle("/login", usersController.LoginView).Methods("GET")
-	r.HandleFunc("/login", usersController.Login).Methods("POST")
+	r.HandleFunc("/signup", usersCtrl.New).Methods("GET")
+	r.HandleFunc("/signup", usersCtrl.Create).Methods("POST")
+	r.Handle("/login", usersCtrl.LoginView).Methods("GET")
+	r.HandleFunc("/login", usersCtrl.Login).Methods("POST")
+
 	// Galleries
-	r.Handle("/galleries/new", galleriesController.New).Methods("GET")
-	r.HandleFunc("/galleries", galleriesController.Create).Methods("POST")
+	r.Handle("/galleries/new", requireUserMw.Apply(galleriesCtrl.New)).Methods("GET")
+	r.Handle("/galleries", requireUserMw.ApplyFunc(galleriesCtrl.Create)).Methods("POST")
+
 	http.ListenAndServe(":3000", r)
 }
