@@ -52,6 +52,7 @@ func main() {
 	// Galleries
 	r.Handle("/galleries/new", requireUserMw.Apply(galleriesCtrl.New)).Methods("GET")
 	r.Handle("/galleries", requireUserMw.ApplyFunc(galleriesCtrl.Create)).Methods("POST")
+	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesCtrl.Show).Methods("GET")
 
 	http.ListenAndServe(":3000", r)
 }
