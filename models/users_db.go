@@ -48,7 +48,7 @@ func (ug *userGorm) GetByEmail(email string) (*User, error) {
 // Get an user by token
 func (ug *userGorm) GetByToken(tokenHash string) (*User, error) {
 	var user User
-	db := ug.db.Where("tokenHash = ?", tokenHash)
+	db := ug.db.Where("token_hash = ?", tokenHash)
 	err := First(db, &user)
 	if err != nil {
 		return nil, err

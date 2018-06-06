@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
 	"jiji/models"
 	"net/http"
 )
@@ -24,7 +23,13 @@ func (mw *RequireUser) ApplyFunc(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		fmt.Println("User found: ", user)
+		// Get context from request
+		ctx := r.Context()
+		// Creates a context with user attached
+		ctx = AssignUserToContext(ctx, user)
+		// Overwrites request with our context attached
+		r = r.WithContext(ctx)
+
 		next(w, r)
 	})
 }

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"jiji/middlewares"
 	"jiji/models"
 	"jiji/views"
 	"net/http"
@@ -34,8 +35,11 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := middlewares.LookUpUserFromContext(r.Context())
+
 	gallery := models.Gallery{
-		Title: galleryForm.Title,
+		Title:  galleryForm.Title,
+		UserId: user.ID,
 	}
 
 	err = g.gs.Create(&gallery)
