@@ -62,15 +62,23 @@ func (g *Galleries) Show(w http.ResponseWriter, r *http.Request) {
 	// Get :id from url id param, converted from string to int
 	vars := mux.Vars(r)
 	idParam := vars["id"]
-	_, err := strconv.Atoi(idParam)
+	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "Invalid gallery ID", http.StatusNotFound)
 		return
 	}
 
-	gallery := models.Gallery{
-		Title: "Temporal title " + idParam,
+	gallery, err := g.gs.GetOneById(uint(id))
+	if err != nil {
+		switch err {
+		case models.ErrNotFound:
+			http.Error(w, "Gallery not found", http.StatusNotFound)
+		default:
+			http.Error(w, "Whoops! Something went wrong.", http.StatusInternalServerError)
+		}
+		return
 	}
+
 	var vd views.Data
 	vd.Yield = gallery
 	g.ShowView.Render(w, vd)
