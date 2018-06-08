@@ -17,6 +17,7 @@ const (
 type Galleries struct {
 	New      *views.View
 	ShowView *views.View
+	EditView *views.View
 	gs       models.GalleryService
 	r        *mux.Router
 }
@@ -29,6 +30,7 @@ func NewGalleries(gs models.GalleryService, r *mux.Router) *Galleries {
 	return &Galleries{
 		New:      views.NewView("bootstrap", "galleries/new"),
 		ShowView: views.NewView("bootstrap", "galleries/show"),
+		EditView: views.NewView("bootstrap", "galleries/edit"),
 		gs:       gs,
 		r:        r,
 	}
@@ -69,13 +71,45 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 
 // GET /galleries/:id
 func (g *Galleries) Show(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.getGalleryById(w, r)
+	if err != nil {
+		return // At this point err is already handled
+	}
+
+	var vd views.Data
+	vd.Yield = gallery
+	g.ShowView.Render(w, vd)
+}
+
+// GET /galleries/:id/edit
+func (g *Galleries) Edit(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.getGalleryById(w, r)
+	if err != nil {
+		return // At this point err is already handled
+	}
+
+	// A user needs logged in to access this page, so we can assume that
+	// the RequireUser middleware has run and set the user for us in the request context.
+	user := middlewares.LookUpUserFromContext(r.Context())
+	if gallery.UserId != user.ID {
+		http.Error(w, "You do not have permission to edit this gallery", http.StatusForbidden)
+		return
+	}
+
+	var vd views.Data
+	vd.Yield = gallery
+	g.EditView.Render(w, vd)
+}
+
+// ------ Helper ------
+func (g *Galleries) getGalleryById(w http.ResponseWriter, r *http.Request) (*models.Gallery, error) {
 	// Get :id from url id param, converted from string to int
 	vars := mux.Vars(r)
 	idParam := vars["id"]
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "Invalid gallery ID", http.StatusNotFound)
-		return
+		return nil, err
 	}
 
 	gallery, err := g.gs.GetOneById(uint(id))
@@ -86,10 +120,8 @@ func (g *Galleries) Show(w http.ResponseWriter, r *http.Request) {
 		default:
 			http.Error(w, "Whoops! Something went wrong.", http.StatusInternalServerError)
 		}
-		return
+		return nil, err
 	}
 
-	var vd views.Data
-	vd.Yield = gallery
-	g.ShowView.Render(w, vd)
+	return gallery, nil
 }

@@ -1,0 +1,23 @@
+{{define "yield"}}
+  <form action="/galleries/{{.ID}}/update" method="POST">
+    <div class="field">
+      <h1 class="is-size-2">Edit Gallery</h1>
+    </div>
+
+    <div class="field">
+      <label class="label">Title</label>
+      <div class="control has-icons-left">
+        <input class="input" type="text" name="title" placeholder="Gallery Title" value="{{.Title}}">
+        <span class="icon is-small is-left">
+          <i class="fas fa-image"></i>
+        </span>
+      </div>
+    </div>
+
+    <div class="field is-grouped">
+      <div class="control">
+        <button class="button is-link">Update</button>
+      </div>
+    </div>
+  </form>
+{{end}}
