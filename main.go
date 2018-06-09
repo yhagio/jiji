@@ -52,6 +52,7 @@ func main() {
 	r.HandleFunc("/login", usersCtrl.Login).Methods("POST")
 
 	// Galleries
+	r.Handle("/galleries", requireUserMw.ApplyFunc(galleriesCtrl.GetAllByUser)).Methods("GET")
 	r.Handle("/galleries/new", requireUserMw.Apply(galleriesCtrl.New)).Methods("GET")
 	r.Handle("/galleries", requireUserMw.ApplyFunc(galleriesCtrl.Create)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesCtrl.Show).Methods("GET").Name(controllers.ShowGallery)

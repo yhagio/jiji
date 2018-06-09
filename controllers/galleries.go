@@ -16,11 +16,12 @@ const (
 )
 
 type Galleries struct {
-	New      *views.View
-	ShowView *views.View
-	EditView *views.View
-	gs       models.GalleryService
-	r        *mux.Router
+	IndexView *views.View
+	New       *views.View
+	ShowView  *views.View
+	EditView  *views.View
+	gs        models.GalleryService
+	r         *mux.Router
 }
 
 type GalleryForm struct {
@@ -29,12 +30,26 @@ type GalleryForm struct {
 
 func NewGalleries(gs models.GalleryService, r *mux.Router) *Galleries {
 	return &Galleries{
-		New:      views.NewView("bootstrap", "galleries/new"),
-		ShowView: views.NewView("bootstrap", "galleries/show"),
-		EditView: views.NewView("bootstrap", "galleries/edit"),
-		gs:       gs,
-		r:        r,
+		IndexView: views.NewView("bootstrap", "galleries/index"),
+		New:       views.NewView("bootstrap", "galleries/new"),
+		ShowView:  views.NewView("bootstrap", "galleries/show"),
+		EditView:  views.NewView("bootstrap", "galleries/edit"),
+		gs:        gs,
+		r:         r,
 	}
+}
+
+// GET /galleries
+func (g *Galleries) GetAllByUser(w http.ResponseWriter, r *http.Request) {
+	user := middlewares.LookUpUserFromContext(r.Context())
+	galleries, err := g.gs.GetAllByUserId(user.ID)
+	if err != nil {
+		http.Error(w, "Oops something went wrong", http.StatusInternalServerError)
+		return
+	}
+	var vd views.Data
+	vd.Yield = galleries
+	g.IndexView.Render(w, galleries)
 }
 
 // POST /galleries
