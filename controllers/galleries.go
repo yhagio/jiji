@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	ShowGallery = "show_gallery"
+	ShowGallery      = "show_gallery"
+	msgSuccessUpdate = "Successfully updated gallery"
 )
 
 type Galleries struct {
@@ -36,6 +37,7 @@ func NewGalleries(gs models.GalleryService, r *mux.Router) *Galleries {
 	}
 }
 
+// POST /galleries
 func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 	var vd views.Data
 	var galleryForm GalleryForm
@@ -97,6 +99,45 @@ func (g *Galleries) Edit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var vd views.Data
+	vd.Yield = gallery
+	g.EditView.Render(w, vd)
+}
+
+func (g *Galleries) Update(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.getGalleryById(w, r)
+	if err != nil {
+		return // At this point err is already handled
+	}
+
+	// A user needs logged in to access this page, so we can assume that
+	// the RequireUser middleware has run and set the user for us in the request context.
+	user := middlewares.LookUpUserFromContext(r.Context())
+	if gallery.UserId != user.ID {
+		http.Error(w, "You do not have permission to edit this gallery", http.StatusForbidden)
+		return
+	}
+
+	var vd views.Data
+	var galleryForm GalleryForm
+
+	err = parseForm(r, &galleryForm)
+	if err != nil {
+		vd.SetAlert(err)
+		g.New.Render(w, vd)
+		return
+	}
+
+	gallery.Title = galleryForm.Title
+
+	err = g.gs.Update(gallery)
+	if err != nil {
+		vd.SetAlert(err)
+	} else {
+		vd.Alert = &views.Alert{
+			Level:   views.AlertLvlSuccess,
+			Message: msgSuccessUpdate,
+		}
+	}
 	vd.Yield = gallery
 	g.EditView.Render(w, vd)
 }

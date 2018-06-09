@@ -15,10 +15,7 @@ var _ GalleryDB = &galleryGorm{}
 type GalleryDB interface {
 	GetOneById(id uint) (*Gallery, error)
 	Create(gallery *Gallery) error
-}
-
-func (gg *galleryGorm) Create(gallery *Gallery) error {
-	return gg.db.Create(gallery).Error
+	Update(gallery *Gallery) error
 }
 
 func (gg *galleryGorm) GetOneById(id uint) (*Gallery, error) {
@@ -29,4 +26,12 @@ func (gg *galleryGorm) GetOneById(id uint) (*Gallery, error) {
 		return nil, err
 	}
 	return &gallery, nil
+}
+
+func (gg *galleryGorm) Create(gallery *Gallery) error {
+	return gg.db.Create(gallery).Error
+}
+
+func (gg *galleryGorm) Update(gallery *Gallery) error {
+	return gg.db.Save(gallery).Error
 }
