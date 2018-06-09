@@ -142,6 +142,32 @@ func (g *Galleries) Update(w http.ResponseWriter, r *http.Request) {
 	g.EditView.Render(w, vd)
 }
 
+func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.getGalleryById(w, r)
+	if err != nil {
+		return // At this point err is already handled
+	}
+
+	// A user needs logged in to access this page, so we can assume that
+	// the RequireUser middleware has run and set the user for us in the request context.
+	user := middlewares.LookUpUserFromContext(r.Context())
+	if gallery.UserId != user.ID {
+		http.Error(w, "You do not have permission to delete this gallery", http.StatusForbidden)
+		return
+	}
+	err = g.gs.Delete(gallery.ID)
+
+	if err != nil {
+		var vd views.Data
+		vd.SetAlert(err)
+		vd.Yield = gallery
+		g.EditView.Render(w, vd)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
 // ------ Helper ------
 func (g *Galleries) getGalleryById(w http.ResponseWriter, r *http.Request) (*models.Gallery, error) {
 	// Get :id from url id param, converted from string to int

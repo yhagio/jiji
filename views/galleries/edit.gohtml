@@ -20,4 +20,12 @@
       </div>
     </div>
   </form>
+  <hr />
+  <form action="/galleries/{{.ID}}/delete" method="POST">
+    <div class="field is-grouped">
+      <div class="control">
+        <button class="button is-danger">Delete</button>
+      </div>
+    </div>
+  </form>
 {{end}}
