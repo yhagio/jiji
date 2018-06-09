@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"html/template"
 	"io"
+	"jiji/middlewares"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -31,10 +32,6 @@ type View struct {
 type Alert struct {
 	Level   string
 	Message string
-}
-type Data struct {
-	Alert *Alert
-	Yield interface{}
 }
 
 type PublicError interface {
@@ -81,24 +78,28 @@ func NewView(layout string, files ...string) *View {
 	}
 }
 
-func (v *View) Render(w http.ResponseWriter, data interface{}) {
+func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) {
 	w.Header().Set("Content-Type", "text/html")
-	switch data.(type) {
+
+	var vd Data
+	switch d := data.(type) {
 	case Data:
-		// do nothing since already Data type
+		vd = d
 	default:
 		// Wrap it for unknown data
-		data = Data{
+		vd = Data{
 			Yield: data,
 		}
 	}
+
+	vd.User = middlewares.LookUpUserFromContext(r.Context())
 
 	// Using a buffer here because writing any data to ResponseWriter will
 	// result in 200 statusCode and we can’t undo that write.
 	// By writing to a buffer first we can confirm that the whole template
 	// executes before starting writing any data to ResponseWriter.
 	var buff bytes.Buffer
-	err := v.Template.ExecuteTemplate(&buff, v.Layout, data)
+	err := v.Template.ExecuteTemplate(&buff, v.Layout, vd)
 	if err != nil {
 		http.Error(w, AlertMsgGeneric, http.StatusInternalServerError)
 		return
@@ -109,7 +110,7 @@ func (v *View) Render(w http.ResponseWriter, data interface{}) {
 // http.Handler needs ServeHTTP method
 // https://golang.org/pkg/net/http/#Handler
 func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	v.Render(w, nil)
+	v.Render(w, r, nil)
 }
 
 func layoutFiles() []string {

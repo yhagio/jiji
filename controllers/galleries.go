@@ -49,7 +49,7 @@ func (g *Galleries) GetAllByUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var vd views.Data
 	vd.Yield = galleries
-	g.IndexView.Render(w, galleries)
+	g.IndexView.Render(w, r, galleries)
 }
 
 // POST /galleries
@@ -60,7 +60,7 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 	err := parseForm(r, &galleryForm)
 	if err != nil {
 		vd.SetAlert(err)
-		g.New.Render(w, vd)
+		g.New.Render(w, r, vd)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 	err = g.gs.Create(&gallery)
 	if err != nil {
 		vd.SetAlert(err)
-		g.New.Render(w, vd)
+		g.New.Render(w, r, vd)
 		return
 	}
 
@@ -95,7 +95,7 @@ func (g *Galleries) Show(w http.ResponseWriter, r *http.Request) {
 
 	var vd views.Data
 	vd.Yield = gallery
-	g.ShowView.Render(w, vd)
+	g.ShowView.Render(w, r, vd)
 }
 
 // GET /galleries/:id/edit
@@ -115,7 +115,7 @@ func (g *Galleries) Edit(w http.ResponseWriter, r *http.Request) {
 
 	var vd views.Data
 	vd.Yield = gallery
-	g.EditView.Render(w, vd)
+	g.EditView.Render(w, r, vd)
 }
 
 func (g *Galleries) Update(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +138,7 @@ func (g *Galleries) Update(w http.ResponseWriter, r *http.Request) {
 	err = parseForm(r, &galleryForm)
 	if err != nil {
 		vd.SetAlert(err)
-		g.New.Render(w, vd)
+		g.New.Render(w, r, vd)
 		return
 	}
 
@@ -154,7 +154,7 @@ func (g *Galleries) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	vd.Yield = gallery
-	g.EditView.Render(w, vd)
+	g.EditView.Render(w, r, vd)
 }
 
 func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
@@ -176,11 +176,11 @@ func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
 		var vd views.Data
 		vd.SetAlert(err)
 		vd.Yield = gallery
-		g.EditView.Render(w, vd)
+		g.EditView.Render(w, r, vd)
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, "/galleries", http.StatusFound)
 }
 
 // ------ Helper ------

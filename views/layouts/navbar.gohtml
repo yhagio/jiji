@@ -14,9 +14,11 @@
 
   <div id="navbarExampleTransparentExample" class="navbar-menu">
     <div class="navbar-start">
-      <a class="navbar-item" href="/galleries">
-        Galleries
-      </a>
+      {{if .User }}
+        <a class="navbar-item" href="/galleries">
+          Galleries
+        </a>
+      {{end}}
       <a class="navbar-item" href="/">
         Home
       </a>
@@ -39,25 +41,31 @@
     </div>
 
     <div class="navbar-end">
-      <a class="navbar-item" href="/login">
-        Login
-      </a>
-      <a class="navbar-item" href="/signup">
-        Signup
-      </a>
-      <div class="navbar-item has-dropdown is-hoverable">
-        <a class="navbar-link" href="/">
-          Account
+      {{if .User }}
+        <a class="navbar-item" href="/logout">
+          Logout
         </a>
-        <div class="navbar-dropdown is-boxed">
-          <a class="navbar-item" href="/">
-            Test
+      {{else}}
+        <a class="navbar-item" href="/login">
+          Login
+        </a>
+        <a class="navbar-item" href="/signup">
+          Signup
+        </a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="/">
+            Account
           </a>
-          <a class="navbar-item" href="/">
-            Test2
-          </a>
+          <div class="navbar-dropdown is-boxed">
+            <a class="navbar-item" href="/">
+              Test
+            </a>
+            <a class="navbar-item" href="/">
+              Test2
+            </a>
+          </div>
         </div>
-      </div>
+      {{end}}
     </div>
   </div>
 </nav>
