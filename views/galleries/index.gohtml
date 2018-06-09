@@ -1,0 +1,36 @@
+{{define "yield"}}
+
+  <div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>View</th>
+          <th>Edit</th>      
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $element := .}}
+          <tr>
+            <th class="gallery-index" data-index="{{$index}}"></th>
+            <td>{{$element.Title}}</td>
+            <td><a href="/galleries/{{.ID}}">View</a></td>
+            <td><a href="/galleries/{{.ID}}/edit">Edit</a></td>
+          </tr>
+        {{end}}
+      </tbody>
+    </table>
+    <div>
+      <a href="/galleries/new"class="button is-info">New Gallery</a>
+    </div>
+  </div>
+
+  <script>
+    const galleryIndexDOMs = document.getElementsByClassName("gallery-index");
+    for (const el of galleryIndexDOMs) {
+      el.innerHTML = parseInt(el.dataset.index, 10) + 1
+    }
+  </script>
+
+{{end}}

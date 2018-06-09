@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"jiji/controllers"
+	"jiji/middlewares"
 	"jiji/models"
 	"net/http"
 
@@ -24,22 +25,41 @@ func main() {
 		host, port, user, password, dbname,
 	)
 	// Create User Service
-	us, err := models.NewUserService(psqlInfo)
+	services, err := models.NewServices(psqlInfo)
 	if err != nil {
 		panic(err)
 	}
-	defer us.Close()
-	us.AutoMigrate()
-
-	staticController := controllers.NewStatic()
-	usersController := controllers.NewUsers(us)
+	defer services.Close()
+	services.AutoMigrate()
 
 	r := mux.NewRouter()
-	r.Handle("/", staticController.HomeView).Methods("GET")
-	r.Handle("/contact", staticController.ContactView).Methods("GET")
-	r.HandleFunc("/signup", usersController.New).Methods("GET")
-	r.HandleFunc("/signup", usersController.Create).Methods("POST")
-	r.Handle("/login", usersController.LoginView).Methods("GET")
-	r.HandleFunc("/login", usersController.Login).Methods("POST")
-	http.ListenAndServe(":3000", r)
+
+	staticCtrl := controllers.NewStatic()
+	usersCtrl := controllers.NewUsers(services.User)
+	galleriesCtrl := controllers.NewGalleries(services.Gallery, r)
+
+	userMW := middlewares.User{
+		UserService: services.User,
+	}
+
+	requireUserMW := middlewares.RequireUser{}
+
+	r.Handle("/", staticCtrl.HomeView).Methods("GET")
+	r.Handle("/contact", staticCtrl.ContactView).Methods("GET")
+
+	// Users
+	r.HandleFunc("/signup", usersCtrl.New).Methods("GET")
+	r.HandleFunc("/signup", usersCtrl.Create).Methods("POST")
+	r.Handle("/login", usersCtrl.LoginView).Methods("GET")
+	r.HandleFunc("/login", usersCtrl.Login).Methods("POST")
+
+	// Galleries
+	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.GetAllByUser)).Methods("GET")
+	r.Handle("/galleries/new", requireUserMW.Apply(galleriesCtrl.New)).Methods("GET")
+	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.Create)).Methods("POST")
+	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesCtrl.Show).Methods("GET").Name(controllers.ShowGallery)
+	r.HandleFunc("/galleries/{id:[0-9]+}/edit", requireUserMW.ApplyFunc(galleriesCtrl.Edit)).Methods("GET")
+	r.HandleFunc("/galleries/{id:[0-9]+}/update", requireUserMW.ApplyFunc(galleriesCtrl.Update)).Methods("POST")
+	r.HandleFunc("/galleries/{id:[0-9]+}/delete", requireUserMW.ApplyFunc(galleriesCtrl.Delete)).Methods("POST")
+	http.ListenAndServe(":3000", userMW.Apply(r))
 }

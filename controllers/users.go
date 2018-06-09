@@ -34,7 +34,7 @@ func NewUsers(us models.UserService) *Users {
 
 // GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	u.NewView.Render(w, nil)
+	u.NewView.Render(w, r, nil)
 }
 
 // POST /signup
@@ -45,7 +45,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	err := parseForm(r, &signupForm)
 	if err != nil {
 		vd.SetAlert(err)
-		u.NewView.Render(w, vd)
+		u.NewView.Render(w, r, vd)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	err = u.us.Create(&user)
 	if err != nil {
 		vd.SetAlert(err)
-		u.NewView.Render(w, vd)
+		u.NewView.Render(w, r, vd)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	var loginForm LoginForm
 	if err := parseForm(r, &loginForm); err != nil {
 		vd.SetAlert(err)
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 		return
 	}
 
@@ -89,14 +89,14 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		default:
 			vd.SetAlert(err)
 		}
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 		return
 	}
 
 	err = u.signIn(w, user)
 	if err != nil {
 		vd.SetAlert(err)
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 		return
 	}
 	// Redirect to the home page

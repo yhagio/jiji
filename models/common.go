@@ -7,16 +7,18 @@ import (
 )
 
 const (
-	ErrNotFound               modelError = "models: resource not found"
+	ErrNotFound               modelError = "models: Resource not found"
 	ErrInvalidID              modelError = "models: ID provided was invalid"
 	ErrInvalidEmailOrPassword modelError = "models: Email or password is incorrect"
-	ErrEmailRequired          modelError = "models: email is required"
-	ErrEmailInvalid           modelError = "models: email is not valid"
-	ErrEmailTaken             modelError = "models: email is already taken"
-	ErrPasswordRequired       modelError = "models: password is required"
-	ErrPasswordTooShort       modelError = "models: password must be at least 8 characters long"
+	ErrEmailRequired          modelError = "models: Email is required"
+	ErrEmailInvalid           modelError = "models: Email is not valid"
+	ErrEmailTaken             modelError = "models: Email is already taken"
+	ErrPasswordRequired       modelError = "models: Password is required"
+	ErrPasswordTooShort       modelError = "models: Password must be at least 8 characters long"
 	ErrTokenRequired          modelError = "models: Token is required"
 	ErrTokenTooShort          modelError = "models: Token must be at least 32 bytes"
+	ErrUserIDRequired         modelError = "models: UserID is required"
+	ErrTitleRequired          modelError = "models: Title is required"
 	ErrNoUserWithEmail        string     = "No user with the email is found"
 )
 
