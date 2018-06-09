@@ -14,6 +14,7 @@ var _ GalleryDB = &galleryGorm{}
 
 type GalleryDB interface {
 	GetOneById(id uint) (*Gallery, error)
+	GetAllByUserId(userId uint) ([]Gallery, error)
 	Create(gallery *Gallery) error
 	Update(gallery *Gallery) error
 	Delete(id uint) error
@@ -27,6 +28,16 @@ func (gg *galleryGorm) GetOneById(id uint) (*Gallery, error) {
 		return nil, err
 	}
 	return &gallery, nil
+}
+
+func (gg *galleryGorm) GetAllByUserId(userId uint) ([]Gallery, error) {
+	var galleries []Gallery
+	db := gg.db.Where("user_id = ?", userId)
+	err := db.Find(&galleries).Error
+	if err != nil {
+		return nil, err
+	}
+	return galleries, nil
 }
 
 func (gg *galleryGorm) Create(gallery *Gallery) error {
