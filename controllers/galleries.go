@@ -1,14 +1,10 @@
 package controllers
 
 import (
-	"fmt"
-	"io"
 	"jiji/middlewares"
 	"jiji/models"
 	"jiji/views"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -26,6 +22,7 @@ type Galleries struct {
 	ShowView  *views.View
 	EditView  *views.View
 	gs        models.GalleryService
+	is        models.ImageService
 	r         *mux.Router
 }
 
@@ -33,13 +30,14 @@ type GalleryForm struct {
 	Title string `schema:"title"`
 }
 
-func NewGalleries(gs models.GalleryService, r *mux.Router) *Galleries {
+func NewGalleries(gs models.GalleryService, is models.ImageService, r *mux.Router) *Galleries {
 	return &Galleries{
 		IndexView: views.NewView("bootstrap", "galleries/index"),
 		New:       views.NewView("bootstrap", "galleries/new"),
 		ShowView:  views.NewView("bootstrap", "galleries/show"),
 		EditView:  views.NewView("bootstrap", "galleries/edit"),
 		gs:        gs,
+		is:        is,
 		r:         r,
 	}
 }
@@ -204,15 +202,6 @@ func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
 	vd.Yield = gallery
 	err = r.ParseMultipartForm(maxMultipartMem)
 
-	galleryPath := filepath.Join("images", "galleries", fmt.Sprintf("%v", gallery.ID))
-	err = os.MkdirAll(galleryPath, 0755)
-	if err != nil {
-		vd.SetAlert(err)
-		vd.Yield = gallery
-		g.EditView.Render(w, r, vd)
-		return
-	}
-
 	files := r.MultipartForm.File["images"]
 	for _, f := range files {
 		// Opend the file
@@ -224,16 +213,8 @@ func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
-		// Create a destination file
-		destination, err := os.Create(filepath.Join(galleryPath, f.Filename))
-		if err != nil {
-			vd.SetAlert(err)
-			g.EditView.Render(w, r, vd)
-			return
-		}
-
-		// Copy the uploaded file data to thedestination file
-		_, err = io.Copy(destination, file)
+		// Image Service - create the image
+		err = g.is.Create(gallery.ID, file, f.Filename)
 		if err != nil {
 			vd.SetAlert(err)
 			g.EditView.Render(w, r, vd)
