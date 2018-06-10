@@ -1,16 +1,21 @@
 package controllers
 
 import (
+	"fmt"
+	"io"
 	"jiji/middlewares"
 	"jiji/models"
 	"jiji/views"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gorilla/mux"
 )
 
 const (
+	maxMultipartMem  = 1 << 20 // 1 megabyte
 	ShowGallery      = "show_gallery"
 	msgSuccessUpdate = "Successfully updated gallery"
 )
@@ -181,6 +186,66 @@ func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/galleries", http.StatusFound)
+}
+
+func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.getGalleryById(w, r)
+	if err != nil {
+		return
+	}
+
+	user := middlewares.LookUpUserFromContext(r.Context())
+	if gallery.UserId != user.ID {
+		http.Error(w, "You do not have permission to upload images to this gallery", http.StatusForbidden)
+		return
+	}
+
+	var vd views.Data
+	vd.Yield = gallery
+	err = r.ParseMultipartForm(maxMultipartMem)
+
+	galleryPath := filepath.Join("images", "galleries", fmt.Sprintf("%v", gallery.ID))
+	err = os.MkdirAll(galleryPath, 0755)
+	if err != nil {
+		vd.SetAlert(err)
+		vd.Yield = gallery
+		g.EditView.Render(w, r, vd)
+		return
+	}
+
+	files := r.MultipartForm.File["images"]
+	for _, f := range files {
+		// Opend the file
+		file, err := f.Open()
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+		defer file.Close()
+
+		// Create a destination file
+		destination, err := os.Create(filepath.Join(galleryPath, f.Filename))
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+
+		// Copy the uploaded file data to thedestination file
+		_, err = io.Copy(destination, file)
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+	}
+
+	vd.Alert = &views.Alert{
+		Level:   views.AlertLvlSuccess,
+		Message: "Images successfully uploaded!",
+	}
+	g.EditView.Render(w, r, vd)
 }
 
 // ------ Helper ------
