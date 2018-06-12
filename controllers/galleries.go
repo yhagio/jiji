@@ -251,5 +251,7 @@ func (g *Galleries) getGalleryById(w http.ResponseWriter, r *http.Request) (*mod
 		return nil, err
 	}
 
+	images, _ := g.is.GetAllByGalleryID(gallery.ID)
+	gallery.Images = images
 	return gallery, nil
 }

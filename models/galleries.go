@@ -6,8 +6,9 @@ import (
 
 type Gallery struct {
 	gorm.Model
-	UserId uint   `gorm:"not_null; index`
-	Title  string `gorm:"not_null`
+	UserId uint     `gorm:"not_null; index`
+	Title  string   `gorm:"not_null`
+	Images []string `gorm:"-"`
 }
 
 type GalleryService interface {

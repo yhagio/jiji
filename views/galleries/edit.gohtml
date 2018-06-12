@@ -21,6 +21,8 @@
     </div>
   </form>
   <hr />
+  {{template "galleryImages" .}}
+  <hr />
   {{template "uploadImageForm" .}}
   <hr />
   {{template "deleteImageForm" .}}
@@ -37,6 +39,17 @@
     fileNameSpan.textContent = fileName;
   }
   </script>
+{{end}}
+
+{{define "galleryImages"}}
+  <p class="label">Image Gallery</p>
+  <ul>
+    {{range .Images}}
+      <li>
+        {{.}}
+      </li>
+    {{end}}
+  </ul>
 {{end}}
 
 {{define "uploadImageForm"}}
