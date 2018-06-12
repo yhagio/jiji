@@ -45,6 +45,11 @@ func (is *imageService) GetAllByGalleryID(galleryID uint) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Add "/" to all image file paths
+	for i := range strings {
+		strings[i] = "/" + strings[i]
+	}
 	return strings, nil
 }
 

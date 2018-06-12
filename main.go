@@ -44,6 +44,11 @@ func main() {
 
 	requireUserMW := middlewares.RequireUser{}
 
+	// Image handler
+	imageHandler := http.FileServer(http.Dir("./images/"))
+	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imageHandler))
+
+	// Static page
 	r.Handle("/", staticCtrl.HomeView).Methods("GET")
 	r.Handle("/contact", staticCtrl.ContactView).Methods("GET")
 
