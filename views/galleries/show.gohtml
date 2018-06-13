@@ -3,6 +3,12 @@
     <h1>
       {{.Title}}
     </h1>
-    <p>Images coming soon...</p>
+    <ul>
+      {{range .Images}}
+        <li class="image is-128x128">
+          <img src="{{.Path}}" />
+        </li>
+      {{end}}
+    </ul>
   </div>
 {{end}}

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"jiji/middlewares"
 	"jiji/models"
 	"jiji/views"
@@ -11,7 +12,9 @@ import (
 )
 
 const (
+	maxMultipartMem  = 1 << 20 // 1 megabyte
 	ShowGallery      = "show_gallery"
+	EditGallery      = "edit_gallery"
 	msgSuccessUpdate = "Successfully updated gallery"
 )
 
@@ -21,6 +24,7 @@ type Galleries struct {
 	ShowView  *views.View
 	EditView  *views.View
 	gs        models.GalleryService
+	is        models.ImageService
 	r         *mux.Router
 }
 
@@ -28,13 +32,14 @@ type GalleryForm struct {
 	Title string `schema:"title"`
 }
 
-func NewGalleries(gs models.GalleryService, r *mux.Router) *Galleries {
+func NewGalleries(gs models.GalleryService, is models.ImageService, r *mux.Router) *Galleries {
 	return &Galleries{
 		IndexView: views.NewView("bootstrap", "galleries/index"),
 		New:       views.NewView("bootstrap", "galleries/new"),
 		ShowView:  views.NewView("bootstrap", "galleries/show"),
 		EditView:  views.NewView("bootstrap", "galleries/edit"),
 		gs:        gs,
+		is:        is,
 		r:         r,
 	}
 }
@@ -183,6 +188,86 @@ func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/galleries", http.StatusFound)
 }
 
+func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.getGalleryById(w, r)
+	if err != nil {
+		return
+	}
+
+	user := middlewares.LookUpUserFromContext(r.Context())
+	if gallery.UserId != user.ID {
+		http.Error(w, "You do not have permission to upload images to this gallery", http.StatusForbidden)
+		return
+	}
+
+	var vd views.Data
+	vd.Yield = gallery
+	err = r.ParseMultipartForm(maxMultipartMem)
+
+	files := r.MultipartForm.File["images"]
+	for _, f := range files {
+		// Opend the file
+		file, err := f.Open()
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+		defer file.Close()
+
+		// Image Service - create the image
+		err = g.is.Create(gallery.ID, file, f.Filename)
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+	}
+
+	vd.Alert = &views.Alert{
+		Level:   views.AlertLvlSuccess,
+		Message: "Images successfully uploaded!",
+	}
+	g.EditView.Render(w, r, vd)
+}
+
+// POST /galleries/:id/images/:filename/delete
+func (g *Galleries) DeleteImage(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.getGalleryById(w, r)
+	if err != nil {
+		return
+	}
+	user := middlewares.LookUpUserFromContext(r.Context())
+	if gallery.UserId != user.ID {
+		http.Error(w, "You do not have permission to edit this gallery or image", http.StatusForbidden)
+		return
+	}
+	// Get the filename from the path
+	filename := mux.Vars(r)["filename"]
+	// Build the Image model
+	i := models.Image{
+		Filename:  filename,
+		GalleryID: gallery.ID,
+	}
+	// Try to delete the image.
+	err = g.is.Delete(&i)
+	if err != nil {
+		// Render the edit page with any errors.
+		var vd views.Data
+		vd.Yield = gallery
+		vd.SetAlert(err)
+		g.EditView.Render(w, r, vd)
+		return
+	}
+	// If all goes well, redirect to the edit gallery page.
+	url, err := g.r.Get(EditGallery).URL("id", fmt.Sprintf("%v", gallery.ID))
+	if err != nil {
+		http.Redirect(w, r, "/galleries", http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, url.Path, http.StatusFound)
+}
+
 // ------ Helper ------
 func (g *Galleries) getGalleryById(w http.ResponseWriter, r *http.Request) (*models.Gallery, error) {
 	// Get :id from url id param, converted from string to int
@@ -205,5 +290,7 @@ func (g *Galleries) getGalleryById(w http.ResponseWriter, r *http.Request) (*mod
 		return nil, err
 	}
 
+	images, _ := g.is.GetAllByGalleryID(gallery.ID)
+	gallery.Images = images
 	return gallery, nil
 }

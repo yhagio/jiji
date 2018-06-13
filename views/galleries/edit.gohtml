@@ -21,11 +21,80 @@
     </div>
   </form>
   <hr />
+  {{template "galleryImages" .}}
+  <hr />
+  {{template "uploadImageForm" .}}
+  <hr />
+  {{template "deleteGalleryForm" .}}
+
+  <script>
+  const input = document.getElementById('image-upload');
+  const fileNameSpan = document.getElementById('selected-file');
+
+  input.addEventListener('change', showFileName);
+
+  function showFileName(event) {
+    const input = event.srcElement;
+    const fileName = input.files[0].name;
+    fileNameSpan.textContent = fileName;
+  }
+  </script>
+{{end}}
+
+{{define "galleryImages"}}
+  <p class="label">Image Gallery</p>
+  <ul>
+    {{range .Images}}
+      <li class="go-img-item">
+        <img src="{{.Path}}" class="image is-128x128" />
+        {{template "deleteImageForm" .}}
+      </li>
+    {{end}}
+  </ul>
+{{end}}
+
+{{define "uploadImageForm"}}
+  <form action="/galleries/{{.ID}}/images" method="POST" enctype="multipart/form-data">
+
+    <div class="field">
+      <label class="label">Upload Images</label>
+      <div class="file is-info has-name">
+        <label class="file-label">
+          <input id="image-upload" class="file-input" type="file" name="images" multiple="multiple">
+          <span class="file-cta">
+            <span class="file-icon">
+              <i class="fas fa-upload"></i>
+            </span>
+            <span class="file-label">
+              Image
+            </span>
+          </span>
+          <span id="selected-file" class="file-name">... None</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field is-grouped">
+      <div class="control">
+        <button class="button is-success">Upload</button>
+      </div>
+    </div>
+
+  </form>
+{{end}}
+
+{{define "deleteGalleryForm"}}
   <form action="/galleries/{{.ID}}/delete" method="POST">
     <div class="field is-grouped">
       <div class="control">
-        <button class="button is-danger">Delete</button>
+        <button class="button is-danger">Delete Gallery</button>
       </div>
     </div>
+  </form>
+{{end}}
+
+{{define "deleteImageForm"}}
+  <form action="/galleries/{{.GalleryID}}/images/{{.Filename}}/delete" method="POST">
+    <button class="button is-warning" style="margin:auto; display:block">Delete Image</button>
   </form>
 {{end}}
