@@ -63,9 +63,10 @@ func main() {
 	r.Handle("/galleries/new", requireUserMW.Apply(galleriesCtrl.New)).Methods("GET")
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.Create)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesCtrl.Show).Methods("GET").Name(controllers.ShowGallery)
-	r.HandleFunc("/galleries/{id:[0-9]+}/edit", requireUserMW.ApplyFunc(galleriesCtrl.Edit)).Methods("GET")
+	r.HandleFunc("/galleries/{id:[0-9]+}/edit", requireUserMW.ApplyFunc(galleriesCtrl.Edit)).Methods("GET").Name(controllers.EditGallery)
 	r.HandleFunc("/galleries/{id:[0-9]+}/update", requireUserMW.ApplyFunc(galleriesCtrl.Update)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", requireUserMW.ApplyFunc(galleriesCtrl.Delete)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images", requireUserMW.ApplyFunc(galleriesCtrl.ImageUpload)).Methods("POST")
+	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", requireUserMW.ApplyFunc(galleriesCtrl.DeleteImage)).Methods("POST")
 	http.ListenAndServe(":3000", userMW.Apply(r))
 }
