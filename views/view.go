@@ -8,6 +8,7 @@ import (
 	"jiji/middlewares"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 
 	"github.com/gorilla/csrf"
@@ -71,8 +72,6 @@ func NewView(layout string, files ...string) *View {
 	addTemplateExt(files)
 	files = append(files, layoutFiles()...)
 
-	// t, err := template.ParseFiles(files...)
-
 	// We are changing how we create our templates, calling
 	// New("") to give us a template that we can add a function to
 	// before finally passing in files to parse as part of the template.
@@ -83,8 +82,10 @@ func NewView(layout string, files ...string) *View {
 			// package to return an error when executed.
 			return "", errors.New("csrfField is not implemented")
 		},
-		// Once we have our template with a function we are going to pass in files
-		// to parse, much like we were previously.
+		"pathEscape": func(s string) string {
+			return url.PathEscape(s)
+		},
+		// Once we have our template with a function we'll pass in files to parse.
 	}).ParseFiles(files...)
 	if err != nil {
 		panic(err)
