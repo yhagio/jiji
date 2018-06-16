@@ -12,22 +12,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "jiji_dev_user"
-	password = "123test"
-	dbname   = "jiji_dev"
-)
-
 func main() {
-	// ********* Create a DB connection (Postgres) *********
-	psqlInfo := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname,
-	)
 	// ********* Create User Service *********
-	services, err := models.NewServices(psqlInfo)
+	config := DefaultConfig()
+	dbConfig := DefaultPostgresConfig()
+	services, err := models.NewServices(dbConfig.Dialect(), dbConfig.ConnectionInfo())
 	if err != nil {
 		panic(err)
 	}
@@ -51,8 +40,6 @@ func main() {
 	galleriesCtrl := controllers.NewGalleries(services.Gallery, services.Image, r)
 
 	// ********* Middlewares *********
-	isProd := false
-
 	userMW := middlewares.User{
 		UserService: services.User,
 	}
@@ -63,7 +50,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	csrfMW := csrf.Protect(bytes, csrf.Secure(isProd))
+	csrfMW := csrf.Protect(bytes, csrf.Secure(config.IsProd()))
 
 	// ********* Static page *********
 	r.Handle("/", staticCtrl.HomeView).Methods("GET")
@@ -85,5 +72,7 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", requireUserMW.ApplyFunc(galleriesCtrl.Delete)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images", requireUserMW.ApplyFunc(galleriesCtrl.ImageUpload)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", requireUserMW.ApplyFunc(galleriesCtrl.DeleteImage)).Methods("POST")
-	http.ListenAndServe(":3000", csrfMW(userMW.Apply(r)))
+
+	fmt.Printf("Starting the server on localhost:%d...\n", config.Port)
+	http.ListenAndServe(fmt.Sprintf(":%d", config.Port), csrfMW(userMW.Apply(r)))
 }
