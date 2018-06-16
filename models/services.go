@@ -9,19 +9,20 @@ type Services struct {
 	db      *gorm.DB
 }
 
-func NewServices(dialect, connectionInfo string) (*Services, error) {
-	db, err := gorm.Open(dialect, connectionInfo)
-	if err != nil {
-		return nil, err
-	}
-	db.LogMode(true)
+type ServicesConfig func(*Services) error
 
-	return &Services{
-		User:    NewUserService(db),
-		Gallery: NewGalleryService(db),
-		Image:   NewImageService(),
-		db:      db,
-	}, nil
+func NewServices(configs ...ServicesConfig) (*Services, error) {
+	var services Services
+	// For each ServicesConfig function...
+	for _, config := range configs {
+		// Run the function passing in a pointer to our Services
+		// object and catching any errors
+		if err := config(&services); err != nil {
+			return nil, err
+		}
+	}
+	// Then finally return the result
+	return &services, nil
 }
 
 func (services *Services) Close() error {
@@ -45,4 +46,46 @@ func (services *Services) AutoMigrate() error {
 		return err
 	}
 	return nil
+}
+
+func WithGorm(dialect, connectionInfo string) ServicesConfig {
+	return func(s *Services) error {
+		db, err := gorm.Open(dialect, connectionInfo)
+		if err != nil {
+			return err
+		}
+		s.db = db
+		return nil
+	}
+}
+
+func WithLogMode(mode bool) ServicesConfig {
+	return func(s *Services) error {
+		s.db.LogMode(mode)
+		return nil
+	}
+}
+
+/////////////////////////
+// Create each service //
+/////////////////////////
+func WithUser(pepper, hmacKey string) ServicesConfig {
+	return func(s *Services) error {
+		s.User = NewUserService(s.db, pepper, hmacKey)
+		return nil
+	}
+}
+
+func WithGallery() ServicesConfig {
+	return func(s *Services) error {
+		s.Gallery = NewGalleryService(s.db)
+		return nil
+	}
+}
+
+func WithImage() ServicesConfig {
+	return func(s *Services) error {
+		s.Image = NewImageService()
+		return nil
+	}
 }
