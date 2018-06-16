@@ -20,9 +20,26 @@ psql
 
 ## Dev setup
 
+Create a file `.config`
+```json
+{
+  "port": 3000,
+  "env": "dev",
+  "pepper": "secret-random-string",
+  "hmac_key": "secret-hmac-key",
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "jiji_dev_user",
+    "password": "your-password",
+    "name": "jiji_dev"
+  }
+}
+```
+
 ```bash
 go get            # Install dependencies
-go run main.go    # Starts the application
+go run *.go       # Starts the application
 godoc -http=:6060 # Documentation http://localhost:6060/pkg/jiji/
 ```
 
@@ -38,4 +55,14 @@ In this app repo, run `fresh`
 
 ```bash
 fresh
+```
+
+### Other commands
+```bash 
+go run *.go --help   # Check if flag is provided
+
+go build -o app *.go # Build a binary named app
+./app --help
+
+go run *.go -prod    # Production, ensures to use .config
 ```

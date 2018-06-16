@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+)
 
 type PostgresConfig struct {
 	Host     string `json:"host"`
@@ -36,10 +40,11 @@ func DefaultPostgresConfig() PostgresConfig {
 }
 
 type Config struct {
-	Port    int    `json:"port"`
-	Env     string `json:"env"`
-	Pepper  string `json:"pepper"`
-	HMACKey string `json:"hmac_key"`
+	Port     int            `json:"port"`
+	Env      string         `json:"env"`
+	Pepper   string         `json:"pepper"`
+	HMACKey  string         `json:"hmac_key"`
+	Database PostgresConfig `json:"database"`
 }
 
 func (c Config) IsProd() bool {
@@ -48,9 +53,44 @@ func (c Config) IsProd() bool {
 
 func DefaultConfig() Config {
 	return Config{
-		Port:    3000,
-		Env:     "dev",
-		Pepper:  "super-secret-pepper-for-password",
-		HMACKey: "super-secret-hmac-key",
+		Port:     3000,
+		Env:      "dev",
+		Pepper:   "super-secret-pepper-for-password",
+		HMACKey:  "super-secret-hmac-key",
+		Database: DefaultPostgresConfig(),
 	}
+}
+
+func LoadConfig(configRequired bool) Config {
+	// Open the config file
+	configFile, err := os.Open(".config")
+	if err != nil {
+		if configRequired {
+			panic(err)
+		}
+		// If there was an error opening the file, print out a
+		// message saying we are using the default config and
+		// return it.
+		fmt.Println("Using the default config...")
+		return DefaultConfig()
+	}
+	// If we opened the config file successfully we are going
+	// to create a Config variable to load it into.
+	var config Config
+	// We also need a JSON decoder, which will read from the
+	// file we opened when decoding
+	dec := json.NewDecoder(configFile)
+	// We then decode the file and place the results in c, the
+	// Config variable we created for the results. The decoder
+	// knows how to decode the data because of the struct tags
+	// (eg `json:"port"`) we added to our Config and
+	// PostgresConfig fields, much like GORM uses struct tags
+	// to know which database column each field maps to.
+	err = dec.Decode(&config)
+	if err != nil {
+		panic(err)
+	}
+	// If all goes well, return the loaded config.
+	fmt.Println("Successfully loaded .config")
+	return config
 }

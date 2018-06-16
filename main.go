@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"jiji/controllers"
 	"jiji/middlewares"
@@ -14,8 +15,12 @@ import (
 
 func main() {
 	// ********* Create User Service *********
-	config := DefaultConfig()
-	dbConfig := DefaultPostgresConfig()
+	configRequired := flag.Bool("prod", false, "Provide this flag in production. "+
+		"This ensures that a .config file is provided before the application starts.")
+	flag.Parse()
+
+	config := LoadConfig(*configRequired)
+	dbConfig := config.Database
 	services, err := models.NewServices(
 		models.WithGorm(dbConfig.Dialect(), dbConfig.ConnectionInfo()),
 		models.WithLogMode(!config.IsProd()),
