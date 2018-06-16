@@ -19,12 +19,12 @@ const (
 )
 
 func main() {
-	// Create a DB connection (Postgres)
+	// ********* Create a DB connection (Postgres) *********
 	psqlInfo := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname,
 	)
-	// Create User Service
+	// ********* Create User Service *********
 	services, err := models.NewServices(psqlInfo)
 	if err != nil {
 		panic(err)
@@ -34,31 +34,37 @@ func main() {
 
 	r := mux.NewRouter()
 
+	// ********* Assets *********
+	assetHandler := http.FileServer(http.Dir("./assets/"))
+	assetHandler = http.StripPrefix("/assets/", assetHandler)
+	r.PathPrefix("/assets/").Handler(assetHandler)
+
+	// ********* Image handler *********
+	imageHandler := http.FileServer(http.Dir("./images/"))
+	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imageHandler))
+
+	// ********* Defines controllers *********
 	staticCtrl := controllers.NewStatic()
 	usersCtrl := controllers.NewUsers(services.User)
 	galleriesCtrl := controllers.NewGalleries(services.Gallery, services.Image, r)
 
+	// ********* Middlewares *********
 	userMW := middlewares.User{
 		UserService: services.User,
 	}
-
 	requireUserMW := middlewares.RequireUser{}
 
-	// Image handler
-	imageHandler := http.FileServer(http.Dir("./images/"))
-	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imageHandler))
-
-	// Static page
+	// ********* Static page *********
 	r.Handle("/", staticCtrl.HomeView).Methods("GET")
 	r.Handle("/contact", staticCtrl.ContactView).Methods("GET")
 
-	// Users
+	// ********* Users *********
 	r.HandleFunc("/signup", usersCtrl.New).Methods("GET")
 	r.HandleFunc("/signup", usersCtrl.Create).Methods("POST")
 	r.Handle("/login", usersCtrl.LoginView).Methods("GET")
 	r.HandleFunc("/login", usersCtrl.Login).Methods("POST")
 
-	// Galleries
+	// ********* Galleries *********
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.GetAllByUser)).Methods("GET")
 	r.Handle("/galleries/new", requireUserMW.Apply(galleriesCtrl.New)).Methods("GET")
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.Create)).Methods("POST")
