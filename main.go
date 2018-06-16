@@ -5,8 +5,10 @@ import (
 	"jiji/controllers"
 	"jiji/middlewares"
 	"jiji/models"
+	"jiji/utils"
 	"net/http"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 )
 
@@ -49,10 +51,19 @@ func main() {
 	galleriesCtrl := controllers.NewGalleries(services.Gallery, services.Image, r)
 
 	// ********* Middlewares *********
+	isProd := false
+
 	userMW := middlewares.User{
 		UserService: services.User,
 	}
 	requireUserMW := middlewares.RequireUser{}
+
+	// CSRF
+	bytes, err := utils.GenerateRandomBytes(32)
+	if err != nil {
+		panic(err)
+	}
+	csrfMW := csrf.Protect(bytes, csrf.Secure(isProd))
 
 	// ********* Static page *********
 	r.Handle("/", staticCtrl.HomeView).Methods("GET")
@@ -74,5 +85,5 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", requireUserMW.ApplyFunc(galleriesCtrl.Delete)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images", requireUserMW.ApplyFunc(galleriesCtrl.ImageUpload)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", requireUserMW.ApplyFunc(galleriesCtrl.DeleteImage)).Methods("POST")
-	http.ListenAndServe(":3000", userMW.Apply(r))
+	http.ListenAndServe(":3000", csrfMW(userMW.Apply(r)))
 }
