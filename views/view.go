@@ -111,6 +111,13 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 		}
 	}
 
+	// Look up the alert and assign it if one is persisted
+	alert := getAlert(r)
+	if alert != nil {
+		vd.Alert = alert
+		clearAlert(w)
+	}
+
 	vd.User = middlewares.LookUpUserFromContext(r.Context())
 
 	// Using a buffer here because writing any data to ResponseWriter will
