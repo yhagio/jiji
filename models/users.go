@@ -8,10 +8,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var userPwPepper = "super-secret-pepper-for-password"
-
-const hmacSecretKey = "secret-hmac-key"
-
 type User struct {
 	gorm.Model
 	Username     string `gorm:"not null; unique_index"`
@@ -29,13 +25,14 @@ type UserService interface {
 	UserDB
 }
 
-func NewUserService(db *gorm.DB) UserService {
+func NewUserService(db *gorm.DB, pepper, hmacKey string) UserService {
 	ug := &userGorm{db}
-	hmac := utils.NewHMAC(hmacSecretKey)
-	uv := newUserValidator(ug, hmac)
+	hmac := utils.NewHMAC(hmacKey)
+	uv := newUserValidator(ug, hmac, pepper)
 
 	return &userService{
 		UserDB: uv,
+		pepper: pepper,
 	}
 }
 
@@ -43,6 +40,7 @@ var _ UserService = &userService{}
 
 type userService struct {
 	UserDB
+	pepper string
 }
 
 // Authenticate user. Checks email and password.
@@ -54,7 +52,7 @@ func (us *userService) Authenticate(email, password string) (*User, error) {
 
 	err = bcrypt.CompareHashAndPassword(
 		[]byte(user.PasswordHash),
-		[]byte(password+userPwPepper),
+		[]byte(password+us.pepper),
 	)
 
 	if err != nil {

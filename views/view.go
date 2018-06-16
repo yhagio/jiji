@@ -2,12 +2,16 @@ package views
 
 import (
 	"bytes"
+	"errors"
 	"html/template"
 	"io"
 	"jiji/middlewares"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
+
+	"github.com/gorilla/csrf"
 )
 
 var (
@@ -67,7 +71,22 @@ func NewView(layout string, files ...string) *View {
 	addTemplatePath(files)
 	addTemplateExt(files)
 	files = append(files, layoutFiles()...)
-	t, err := template.ParseFiles(files...)
+
+	// We are changing how we create our templates, calling
+	// New("") to give us a template that we can add a function to
+	// before finally passing in files to parse as part of the template.
+	t, err := template.New("").Funcs(template.FuncMap{
+		"csrfField": func() (template.HTML, error) {
+			// If this is called without being replace with a proper implementation
+			// returning an error as the second argument will cause our template
+			// package to return an error when executed.
+			return "", errors.New("csrfField is not implemented")
+		},
+		"pathEscape": func(s string) string {
+			return url.PathEscape(s)
+		},
+		// Once we have our template with a function we'll pass in files to parse.
+	}).ParseFiles(files...)
 	if err != nil {
 		panic(err)
 	}
@@ -99,7 +118,19 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 	// By writing to a buffer first we can confirm that the whole template
 	// executes before starting writing any data to ResponseWriter.
 	var buff bytes.Buffer
-	err := v.Template.ExecuteTemplate(&buff, v.Layout, vd)
+	// We need to create the csrfField using the current http request.
+	csrfField := csrf.TemplateField(r)
+	tpl := v.Template.Funcs(template.FuncMap{
+		// We can also change the return type of our function, since we no longer
+		// need to worry about errors.
+		"csrfField": func() template.HTML {
+			// We can then create this closure that returns the csrfField for
+			// any templates that need access to it.
+			return csrfField
+		},
+	})
+
+	err := tpl.ExecuteTemplate(&buff, v.Layout, vd)
 	if err != nil {
 		http.Error(w, AlertMsgGeneric, http.StatusInternalServerError)
 		return

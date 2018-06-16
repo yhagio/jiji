@@ -13,7 +13,7 @@ func GenerateToken() (string, error) {
 }
 
 // Generate n random bytes.
-func generateRandomBytes(n int) ([]byte, error) {
+func GenerateRandomBytes(n int) ([]byte, error) {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {
@@ -26,7 +26,7 @@ func generateRandomBytes(n int) ([]byte, error) {
 // return a string that is the base64 URL encoded version
 // of that byte slice
 func generateEncodedString(nBytes int) (string, error) {
-	b, err := generateRandomBytes(nBytes)
+	b, err := GenerateRandomBytes(nBytes)
 	if err != nil {
 		return "", err
 	}

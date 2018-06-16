@@ -2,3 +2,5 @@ try
 tmp
 NOTE.md
 images
+.config
+scripts/*

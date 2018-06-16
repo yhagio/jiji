@@ -15,13 +15,15 @@ import (
 type userValidator struct {
 	UserDB
 	hmac       utils.HMAC
+	pepper     string
 	emailRegex *regexp.Regexp
 }
 
-func newUserValidator(udb UserDB, hmac utils.HMAC) *userValidator {
+func newUserValidator(udb UserDB, hmac utils.HMAC, pepper string) *userValidator {
 	return &userValidator{
 		UserDB:     udb,
 		hmac:       hmac,
+		pepper:     pepper,
 		emailRegex: regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`),
 	}
 }
@@ -109,7 +111,7 @@ func (uv *userValidator) generatePasswordHash(user *User) error {
 	}
 
 	hasedBytes, err := bcrypt.GenerateFromPassword(
-		[]byte(user.Password+userPwPepper),
+		[]byte(user.Password+uv.pepper),
 		bcrypt.DefaultCost)
 
 	if err != nil {
