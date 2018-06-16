@@ -66,3 +66,86 @@ go build -o app *.go # Build a binary named app
 
 go run *.go -prod    # Production, ensures to use .config
 ```
+
+### Digital Ocean setup
+
+After ssh into the droplet server you created
+
+Setup DB
+```bash
+sudo apt-get update
+sudo apt-get install postgresql postgresql-contrib
+
+sudo -u postgres psql
+> ALTER USER postgres WITH ENCRYPTED PASSWORD 'YOUR_PASSWORD';
+# ctrl + d to quit
+
+vi /etc/postgresql/10/main/pg_hba.conf
+# Replace 
+# from: local   all   postgres   peer
+# to:   local   all   postgres   md5
+
+sudo service postgresql restart
+
+psql -U postgres
+> CREATE DATABASE jiji_demo;
+```
+
+Setup Go
+```bash
+curl -O https://storage.googleapis.com/golang/go1.10.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.10.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+mkdir -p go/src
+
+# Check Go version
+go version
+/usr/local/go/bin/go version
+```
+
+Setup Caddy
+```bash
+cd ~/go/src
+go get -u github.com/mholt/caddy
+go get -u github.com/caddyserver/builds
+
+# Build Caddy
+cd ~/go/src/github.com/mholt/caddy/caddy
+go run build.go -goos=linux -goarch=amd64
+
+./caddy # Test Caddy
+
+cp ./caddy /usr/local/bin/ # Copy Caddy binary
+
+sudo vi /etc/systemd/system/caddy.service
+```
+and fill with
+```
+[Unit]
+Description=caddy server for serving jiji-demo
+
+[Service]
+WorkingDirectory=/root/app
+ExecStart=/usr/local/bin/caddy -email your@email.com
+Restart=always
+RestartSec=120
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+systemctl daemon-reload
+systemctl enable caddy.service
+```
+
+```bash
+mkdir /root/app
+sudo service caddy restart
+journalctl -r # view logs from our services, and the -r flag says to display them in reverse order so we see the newest logs first
+```
+
+```bash
+sudo service caddy stop
+```
