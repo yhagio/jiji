@@ -61,6 +61,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// If get CSRF token is invalid error, app is ruuning on localhost or non-https
 	csrfMW := csrf.Protect(bytes, csrf.Secure(config.IsProd()))
 
 	// ********* Static page *********

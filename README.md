@@ -38,6 +38,8 @@ Create a file `.config`
 ```
 
 ```bash
+chmod +x scripts/release.sh
+
 go get            # Install dependencies
 go run *.go       # Starts the application
 godoc -http=:6060 # Documentation http://localhost:6060/pkg/jiji/
@@ -67,7 +69,7 @@ go build -o app *.go # Build a binary named app
 go run *.go -prod    # Production, ensures to use .config
 ```
 
-### Digital Ocean setup
+### Digital Ocean setup - Deployment
 
 After ssh into the droplet server you created
 
@@ -148,4 +150,133 @@ journalctl -r # view logs from our services, and the -r flag says to display the
 
 ```bash
 sudo service caddy stop
+sudo vi /etc/systemd/system/jiji_demo.service
+```
+fill with
+```
+[Unit]
+Description=jiji_demo app
+
+[Service]
+WorkingDirectory=/root/app
+ExecStart=/root/app/server -prod
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+systemctl daemon-reload
+systemctl enable jiji_demo.service
+```
+
+Create production config
+```bash
+touch /root/app/.config
+vi /root/app/.config
+```
+and content is
+```json
+{
+  "port": 3000,
+  "env": "prod",
+  "pepper": "SECRET_STUFF",
+  "hmac_key": "SECRET_STUFF",
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "SECRET_STUFF",
+    "name": "jiji_demo"
+  }
+}
+```
+
+### Create deployment script
+
+```bash
+mkdir scripts
+touch scripts/releash.sh
+```
+
+**/scripts/release.sh** example (replace your own IP)
+```bash
+#!/bin/bash
+cd "$GOPATH/src/jiji"
+
+echo "==== Releasing jiji ===="
+echo "  Deleting the local binary if it exists (so it isn't uploaded)..."
+rm jiji
+echo "  Done!"
+
+
+echo "  Deleting existing code..."
+ssh root@123.78.123.156 "rm -rf /root/go/src/jiji"
+echo "  Code deleted successfully!"
+
+
+echo "  Uploading code..."
+# The \ at the end of the line tells bash that our
+# command isn't done and wraps to the next line.
+rsync -avr --exclude '.git/*' --exclude 'tmp/*' --exclude 'images/*' ./ \
+  root@123.78.123.156:/root/go/src/jiji/
+echo "  Code uploaded successfully!"
+
+
+echo "  Go getting deps..."
+ssh root@123.78.123.156 "export GOPATH=/root/go; \
+  /usr/local/go/bin/go get golang.org/x/crypto/bcrypt"
+ssh root@123.78.123.156 "export GOPATH=/root/go; \
+  /usr/local/go/bin/go get github.com/gorilla/mux"
+ssh root@123.78.123.156 "export GOPATH=/root/go; \
+  /usr/local/go/bin/go get github.com/gorilla/schema"
+ssh root@123.78.123.156 "export GOPATH=/root/go; \
+  /usr/local/go/bin/go get github.com/lib/pq"
+ssh root@123.78.123.156 "export GOPATH=/root/go; \
+  /usr/local/go/bin/go get github.com/jinzhu/gorm"
+ssh root@123.78.123.156 "export GOPATH=/root/go; \
+  /usr/local/go/bin/go get github.com/gorilla/csrf"
+
+
+echo "  Building the code on remote server..."
+ssh root@123.78.123.156 'export GOPATH=/root/go; \
+  cd /root/app; \
+  /usr/local/go/bin/go build -o ./server \
+    $GOPATH/src/jiji/*.go'
+echo "  Code built successfully!"
+
+
+echo "  Moving assets..."
+ssh root@123.78.123.156 "cd /root/app; \
+  cp -R /root/go/src/jiji/assets ."
+echo "  Assets moved successfully!"
+
+echo "  Moving views..."
+ssh root@123.78.123.156 "cd /root/app; \
+  cp -R /root/go/src/jiji/views ."
+echo "  Views moved successfully!"
+
+echo "  Moving Caddyfile..."
+ssh root@123.78.123.156 "cd /root/app; \
+  cp /root/go/src/jiji/Caddyfile ."
+echo "  Views moved successfully!"
+
+
+echo "  Restarting the server..."
+ssh root@123.78.123.156 "sudo service jiji_demo restart"
+echo "  Server restarted successfully!"
+
+echo "  Restarting Caddy server..."
+ssh root@123.78.123.156 "sudo service caddy restart"
+echo "  Caddy restarted successfully!"
+
+echo "==== Done releasing jiji ===="
+```
+
+
+Deploy command
+```bash
+./scripts/release.sh
 ```
