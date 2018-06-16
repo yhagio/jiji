@@ -73,6 +73,7 @@ func main() {
 	r.HandleFunc("/signup", usersCtrl.Create).Methods("POST")
 	r.Handle("/login", usersCtrl.LoginView).Methods("GET")
 	r.HandleFunc("/login", usersCtrl.Login).Methods("POST")
+	r.Handle("/logout", requireUserMW.ApplyFunc(usersCtrl.Logout)).Methods("POST")
 
 	// ********* Galleries *********
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.GetAllByUser)).Methods("GET")

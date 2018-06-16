@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"jiji/middlewares"
 	"jiji/models"
 	"jiji/utils"
 	"jiji/views"
 	"net/http"
+	"time"
 )
 
 type Users struct {
@@ -123,4 +125,26 @@ func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
 	}
 	http.SetCookie(w, &cookie)
 	return nil
+}
+
+// POST /logout
+func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
+	// First expire the user's cookie
+	cookie := http.Cookie{
+		Name:     "authToken",
+		Value:    "",
+		Expires:  time.Now(),
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+	// Then we update the user with a new remember token
+	user := middlewares.LookUpUserFromContext(r.Context())
+	// We are ignoring errors for now because they are
+	// unlikely, and even if they do occur we can't recover
+	// now that the user doesn't have a valid cookie
+	token, _ := utils.GenerateToken()
+	user.Token = token
+	u.us.Update(user)
+	// Finally send the user to the home page
+	http.Redirect(w, r, "/", http.StatusFound)
 }

@@ -25,26 +25,14 @@
       <a class="navbar-item" href="/contact">
         Contact
       </a>
-      <div class="navbar-item has-dropdown is-hoverable">
-        <a class="navbar-link" href="/">
-          Docs
-        </a>
-        <div class="navbar-dropdown is-boxed">
-          <a class="navbar-item" href="/">
-            Test
-          </a>
-          <a class="navbar-item" href="/">
-            Test2
-          </a>
-        </div>
-      </div>
     </div>
 
     <div class="navbar-end">
       {{if .User }}
-        <a class="navbar-item" href="/logout">
-          Logout
-        </a>
+        <form class="navbar-item" action="/logout" method="POST">
+          {{csrfField}}
+          <button type="submit" class="button is-primary">Log out</button>
+        </form>
       {{else}}
         <a class="navbar-item" href="/login">
           Login
@@ -52,19 +40,6 @@
         <a class="navbar-item" href="/signup">
           Signup
         </a>
-        <div class="navbar-item has-dropdown is-hoverable">
-          <a class="navbar-link" href="/">
-            Account
-          </a>
-          <div class="navbar-dropdown is-boxed">
-            <a class="navbar-item" href="/">
-              Test
-            </a>
-            <a class="navbar-item" href="/">
-              Test2
-            </a>
-          </div>
-        </div>
       {{end}}
     </div>
   </div>
