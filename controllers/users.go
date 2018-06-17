@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"jiji/email"
 	"jiji/middlewares"
 	"jiji/models"
 	"jiji/utils"
@@ -13,6 +14,7 @@ type Users struct {
 	NewView   *views.View
 	LoginView *views.View
 	us        models.UserService
+	emailer   *email.Client
 }
 
 type SignupForm struct {
@@ -26,11 +28,12 @@ type LoginForm struct {
 	Password string `schema:"password"`
 }
 
-func NewUsers(us models.UserService) *Users {
+func NewUsers(us models.UserService, emailer *email.Client) *Users {
 	return &Users{
 		NewView:   views.NewView("bootstrap", "users/new"),
 		LoginView: views.NewView("bootstrap", "users/login"),
 		us:        us,
+		emailer:   emailer,
 	}
 }
 
@@ -64,6 +67,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	u.emailer.Welcome(user.Username, user.Email)
 	err = u.signIn(w, &user)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)

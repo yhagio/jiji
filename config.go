@@ -39,12 +39,27 @@ func DefaultPostgresConfig() PostgresConfig {
 	}
 }
 
+func defaultMailgunConfig() MailgunConfig {
+	return MailgunConfig{
+		APIKey:       "key-dsafjlsdafh9ds890890sdfasfd",
+		PublicAPIKey: "pubkey-124321498sdfdsf8u987dsfsdaf08",
+		Domain:       "jiji_demo.com",
+	}
+}
+
 type Config struct {
 	Port     int            `json:"port"`
 	Env      string         `json:"env"`
 	Pepper   string         `json:"pepper"`
 	HMACKey  string         `json:"hmac_key"`
 	Database PostgresConfig `json:"database"`
+	Mailgun  MailgunConfig  `json:"mailgun"`
+}
+
+type MailgunConfig struct {
+	APIKey       string `json:"api_key"`
+	PublicAPIKey string `json:"public_api_key"`
+	Domain       string `json:"domain"`
 }
 
 func (c Config) IsProd() bool {
@@ -58,6 +73,7 @@ func DefaultConfig() Config {
 		Pepper:   "super-secret-pepper-for-password",
 		HMACKey:  "super-secret-hmac-key",
 		Database: DefaultPostgresConfig(),
+		Mailgun:  defaultMailgunConfig(),
 	}
 }
 

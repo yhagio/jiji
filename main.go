@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"jiji/controllers"
+	"jiji/email"
 	"jiji/middlewares"
 	"jiji/models"
 	"jiji/utils"
@@ -33,6 +34,14 @@ func main() {
 	}
 	defer services.Close()
 	services.AutoMigrate()
+	// services.DestructiveReset()
+
+	// Mailgun config
+	mailgunConfig := config.Mailgun
+	emailer := email.NewClient(
+		email.WithSender("JIJI Support", "support@"+mailgunConfig.Domain),
+		email.WithMailgun(mailgunConfig.Domain, mailgunConfig.APIKey, mailgunConfig.PublicAPIKey),
+	)
 
 	r := mux.NewRouter()
 
@@ -47,7 +56,7 @@ func main() {
 
 	// ********* Defines controllers *********
 	staticCtrl := controllers.NewStatic()
-	usersCtrl := controllers.NewUsers(services.User)
+	usersCtrl := controllers.NewUsers(services.User, emailer)
 	galleriesCtrl := controllers.NewGalleries(services.Gallery, services.Image, r)
 
 	// ********* Middlewares *********

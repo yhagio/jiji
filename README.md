@@ -190,6 +190,11 @@ and content is
     "user": "postgres",
     "password": "SECRET_STUFF",
     "name": "jiji_demo"
+  },
+  "mailgun": {
+    "api_key": "your-api-key",
+    "public_api_key": "your-public-key",
+    "domain": "your-domain-setup-with-mailgun"
   }
 }
 ```
