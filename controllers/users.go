@@ -11,10 +11,12 @@ import (
 )
 
 type Users struct {
-	NewView   *views.View
-	LoginView *views.View
-	us        models.UserService
-	emailer   *email.Client
+	NewView            *views.View
+	LoginView          *views.View
+	ForgotPasswordView *views.View
+	ResetPasswordView  *views.View
+	us                 models.UserService
+	emailer            *email.Client
 }
 
 type SignupForm struct {
@@ -28,12 +30,20 @@ type LoginForm struct {
 	Password string `schema:"password"`
 }
 
+type ResetPasswordForm struct {
+	Email    string `schema:"email"`
+	Token    string `schema:"token"`
+	Password string `schema:"password"`
+}
+
 func NewUsers(us models.UserService, emailer *email.Client) *Users {
 	return &Users{
-		NewView:   views.NewView("bootstrap", "users/new"),
-		LoginView: views.NewView("bootstrap", "users/login"),
-		us:        us,
-		emailer:   emailer,
+		NewView:            views.NewView("bootstrap", "users/new"),
+		LoginView:          views.NewView("bootstrap", "users/login"),
+		ForgotPasswordView: views.NewView("bootstrap", "users/forgot_password"),
+		ResetPasswordView:  views.NewView("bootstrap", "users/reset_password"),
+		us:                 us,
+		emailer:            emailer,
 	}
 }
 
@@ -151,4 +161,73 @@ func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
 	u.us.Update(user)
 	// Finally send the user to the home page
 	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// POST /forgot
+func (u *Users) InitiateReset(w http.ResponseWriter, r *http.Request) {
+	var vd views.Data
+	var form ResetPasswordForm
+	vd.Yield = &form
+	if err := parseForm(r, &form); err != nil {
+		vd.SetAlert(err)
+		u.ForgotPasswordView.Render(w, r, vd)
+		return
+	}
+
+	token, err := u.us.InitiateReset(form.Email)
+	if err != nil {
+		vd.SetAlert(err)
+		u.ForgotPasswordView.Render(w, r, vd)
+		return
+	}
+
+	// Email the user their password reset token.
+	err = u.emailer.ResetPassword(form.Email, token)
+	if err != nil {
+		vd.SetAlert(err)
+		u.ForgotPasswordView.Render(w, r, vd)
+		return
+	}
+
+	views.RedirectAlert(w, r, "/reset", http.StatusFound, views.Alert{
+		Level:   views.AlertLvlSuccess,
+		Message: "Instructions for resetting your password have been emailed to you.",
+	})
+}
+
+// GET /reset
+func (u *Users) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var vd views.Data
+	var form ResetPasswordForm
+	vd.Yield = &form
+	err := parseURLParams(r, &form)
+	if err != nil {
+		vd.SetAlert(err)
+	}
+	u.ResetPasswordView.Render(w, r, vd)
+}
+
+// POST /reset
+func (u *Users) CompleteReset(w http.ResponseWriter, r *http.Request) {
+	var vd views.Data
+	var form ResetPasswordForm
+	vd.Yield = &form
+	if err := parseForm(r, &form); err != nil {
+		vd.SetAlert(err)
+		u.ResetPasswordView.Render(w, r, vd)
+		return
+	}
+
+	user, err := u.us.CompleteReset(form.Token, form.Password)
+	if err != nil {
+		vd.SetAlert(err)
+		u.ResetPasswordView.Render(w, r, vd)
+		return
+	}
+
+	u.signIn(w, user)
+	views.RedirectAlert(w, r, "/galleries", http.StatusFound, views.Alert{
+		Level:   views.AlertLvlSuccess,
+		Message: "Your password has been reset and you have been logged in!",
+	})
 }

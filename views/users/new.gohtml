@@ -1,43 +1,48 @@
 {{define "yield"}}
-<form class="card" style="padding:20px" action="/signup" method="POST">
-  {{csrfField}}
-  <div class="field">
-    <h1 class="is-size-2">Signup</h1>
-  </div>
-  <div class="field">
-    <label class="label">Username</label>
-    <div class="control has-icons-left">
-      <input class="input" type="text" name="username" placeholder="Username">
-      <span class="icon is-small is-left">
-        <i class="fas fa-user"></i>
-      </span>
+<div>
+  <form class="card" style="padding:20px" action="/signup" method="POST">
+    {{csrfField}}
+    <div class="field">
+      <h1 class="is-size-2">Signup</h1>
     </div>
-  </div>
+    <div class="field">
+      <label class="label">Username</label>
+      <div class="control has-icons-left">
+        <input class="input" type="text" name="username" placeholder="Username">
+        <span class="icon is-small is-left">
+          <i class="fas fa-user"></i>
+        </span>
+      </div>
+    </div>
 
-  <div class="field">
-    <label class="label">Email</label>
-    <div class="control has-icons-left">
-      <input class="input" type="email" name="email" placeholder="Email">
-      <span class="icon is-small is-left">
-        <i class="fas fa-envelope"></i>
-      </span>
+    <div class="field">
+      <label class="label">Email</label>
+      <div class="control has-icons-left">
+        <input class="input" type="email" name="email" placeholder="Email">
+        <span class="icon is-small is-left">
+          <i class="fas fa-envelope"></i>
+        </span>
+      </div>
     </div>
-  </div>
 
-  <div class="field">
-    <label class="label">Password</label>
-    <div class="control has-icons-left">
-      <input class="input" type="password" name="password" placeholder="Password">
-      <span class="icon is-small is-left">
-        <i class="fas fa-lock"></i>
-      </span>
+    <div class="field">
+      <label class="label">Password</label>
+      <div class="control has-icons-left">
+        <input class="input" type="password" name="password" placeholder="Password">
+        <span class="icon is-small is-left">
+          <i class="fas fa-lock"></i>
+        </span>
+      </div>
     </div>
-  </div>
 
-  <div class="field is-grouped">
-    <div class="control">
-      <button class="button is-link">Signup</button>
+    <div class="field is-grouped">
+      <div class="control">
+        <button class="button is-link">Signup</button>
+      </div>
     </div>
+  </form>
+  <div class="jiji-footer-link">
+    <a href="/login">Already have an account?</a>
   </div>
-</form>
+</div>
 {{end}}

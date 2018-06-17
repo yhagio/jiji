@@ -84,6 +84,11 @@ func main() {
 	r.HandleFunc("/login", usersCtrl.Login).Methods("POST")
 	r.Handle("/logout", requireUserMW.ApplyFunc(usersCtrl.Logout)).Methods("POST")
 
+	r.Handle("/forgot", usersCtrl.ForgotPasswordView).Methods("GET")
+	r.HandleFunc("/forgot", usersCtrl.InitiateReset).Methods("POST")
+	r.HandleFunc("/reset", usersCtrl.ResetPassword).Methods("GET")
+	r.HandleFunc("/reset", usersCtrl.CompleteReset).Methods("POST")
+
 	// ********* Galleries *********
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.GetAllByUser)).Methods("GET")
 	r.Handle("/galleries/new", requireUserMW.Apply(galleriesCtrl.New)).Methods("GET")

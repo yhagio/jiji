@@ -2,12 +2,15 @@ package email
 
 import (
 	"fmt"
+	"net/url"
 
 	mailgun "gopkg.in/mailgun/mailgun-go.v1"
 )
 
 const (
+	resetBaseURL   = "http://localhost:3000/reset" // Change this for production
 	welcomeSubject = "Welcome to JIJI!"
+	resetSubject   = "Instructions for resetting your password."
 )
 
 const welcomeText = `
@@ -26,6 +29,40 @@ const welcomeHTML = `
 	<br/>
 	Best,<br/>
 	Yuichi
+`
+
+const resetTextTmpl = `
+	Hi there!
+
+	It appears that you have requested a password reset. If this was you, please follow the link below to update your password:
+
+	%s
+
+	If you are asked for a token, please use the following value:
+
+	%s
+
+	If you didn't request a password reset you can safely ignore this email and your account will not be changed.
+
+	Best,
+	JIJI Support
+`
+
+const resetHTMLTmpl = `
+	Hi there!<br/>
+	<br/>
+	It appears that you have requested a password reset. If this was you, please follow the link below to update your password:<br/>
+	<br/>
+	<a href="%s">%s</a><br/>
+	<br/>
+	If you are asked for a token, please use the following value:<br/>
+	<br/>
+	%s<br/>
+	<br/>
+	If you didn't request a password reset you can safely ignore this email and your account will not be changed.<br/>
+	<br/>
+	Best,<br/>
+	JIJI Support<br/>
 `
 
 func WithMailgun(domain, apiKey, publicKey string) ClientConfig {
@@ -74,4 +111,16 @@ func buildEmail(username, email string) string {
 		return email
 	}
 	return fmt.Sprintf("%s <%s>", username, email)
+}
+
+func (client *Client) ResetPassword(toEmail, token string) error {
+	v := url.Values{}
+	v.Set("token", token)
+	resetUrl := resetBaseURL + "?" + v.Encode()
+	resetText := fmt.Sprintf(resetTextTmpl, resetUrl, token)
+	message := mailgun.NewMessage(client.from, resetSubject, resetText, toEmail)
+	resetHTML := fmt.Sprintf(resetHTMLTmpl, resetUrl, resetUrl, token)
+	message.SetHtml(resetHTML)
+	_, _, err := client.mg.Send(message)
+	return err
 }

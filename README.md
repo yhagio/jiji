@@ -285,3 +285,5 @@ Deploy command
 ```bash
 ./scripts/release.sh
 ```
+
+Also update `resetBaseURL` in `./email.mailgun.go` 
