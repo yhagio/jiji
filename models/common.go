@@ -19,6 +19,7 @@ const (
 	ErrTokenTooShort          modelError = "models: Token must be at least 32 bytes"
 	ErrUserIDRequired         modelError = "models: UserID is required"
 	ErrTitleRequired          modelError = "models: Title is required"
+	ErrTokenInvalid           modelError = "models: token provided is not valid"
 	ErrNoUserWithEmail        string     = "No user with the email is found"
 )
 

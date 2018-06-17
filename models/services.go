@@ -32,7 +32,7 @@ func (services *Services) Close() error {
 // For development, testing only
 // Recreate tables
 func (services *Services) DestructiveReset() error {
-	err := services.db.DropTableIfExists(&User{}, &Gallery{}).Error
+	err := services.db.DropTableIfExists(&User{}, &Gallery{}, &passwordReset{}).Error
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (services *Services) DestructiveReset() error {
 
 // Auto-migrate tables
 func (services *Services) AutoMigrate() error {
-	err := services.db.AutoMigrate(&User{}, &Gallery{}).Error
+	err := services.db.AutoMigrate(&User{}, &Gallery{}, &passwordReset{}).Error
 	if err != nil {
 		return err
 	}
