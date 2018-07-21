@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"jiji/controllers"
@@ -9,9 +10,11 @@ import (
 	"jiji/models"
 	"jiji/utils"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"golang.org/x/oauth2"
 )
 
 func main() {
@@ -72,6 +75,62 @@ func main() {
 	}
 	// If get CSRF token is invalid error, app is ruuning on localhost or non-https
 	csrfMW := csrf.Protect(bytes, csrf.Secure(config.IsProd()))
+
+	// OAuth dropbox
+	dropboxOAuth := &oauth2.Config{
+		ClientID:     config.Dropbox.ID,
+		ClientSecret: config.Dropbox.Secret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  config.Dropbox.AuthURL,
+			TokenURL: config.Dropbox.TokenURL,
+		},
+		RedirectURL: "http://localhost:3000/oauth/dropbox/callback",
+	}
+
+	dropboxRedirect := func(w http.ResponseWriter, r *http.Request) {
+		state := csrf.Token(r)
+		cookie := http.Cookie{
+			Name:     "oauth_state",
+			Value:    state,
+			HttpOnly: true,
+		}
+		http.SetCookie(w, &cookie)
+		url := dropboxOAuth.AuthCodeURL(state)
+		http.Redirect(w, r, url, http.StatusFound)
+	}
+
+	dropboxCallback := func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+
+		state := r.FormValue("state")
+		cookie, err := r.Cookie("oauth_state")
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		} else if cookie == nil || cookie.Value != state {
+			http.Error(w, "Invalid state is provided", http.StatusBadRequest)
+			return
+		}
+
+		cookie.Value = ""
+		cookie.Expires = time.Now()
+		http.SetCookie(w, cookie)
+
+		code := r.FormValue("code")
+		token, err := dropboxOAuth.Exchange(context.TODO(), code)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		fmt.Fprintf(w, "%+v", token)
+
+		fmt.Fprintln(w, "code: ", r.FormValue("code"), " state: ", r.FormValue("state"))
+	}
+
+	r.HandleFunc("/oauth/dropbox/connect", dropboxRedirect)
+	r.HandleFunc("/oauth/dropbox/callback", dropboxCallback)
 
 	// ********* Static page *********
 	r.Handle("/", staticCtrl.HomeView).Methods("GET")
