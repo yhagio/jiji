@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"jiji/controllers"
 	"jiji/email"
 	"jiji/middlewares"
@@ -30,6 +33,7 @@ func main() {
 		models.WithLogMode(!config.IsProd()),
 		models.WithUser(config.Pepper, config.HMACKey),
 		models.WithGallery(),
+
 		models.WithImage(),
 		models.WithOAuth(),
 	)
@@ -71,12 +75,12 @@ func main() {
 	requireUserMW := middlewares.RequireUser{}
 
 	// CSRF
-	bytes, err := utils.GenerateRandomBytes(32)
+	generatedBytes, err := utils.GenerateRandomBytes(32)
 	if err != nil {
 		panic(err)
 	}
 	// If get CSRF token is invalid error, app is ruuning on localhost or non-https
-	csrfMW := csrf.Protect(bytes, csrf.Secure(config.IsProd()))
+	csrfMW := csrf.Protect(generatedBytes, csrf.Secure(config.IsProd()))
 
 	// OAuth dropbox
 	dropboxOAuth := &oauth2.Config{
@@ -154,8 +158,47 @@ func main() {
 		fmt.Fprintln(w, "code: ", r.FormValue("code"), " state: ", r.FormValue("state"))
 	}
 
+	dropboxQuery := func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		path := r.FormValue("path")
+
+		user := middlewares.LookUpUserFromContext(r.Context())
+		userOAuth, err := services.OAuth.Find(user.ID, models.OAuthDropbox)
+		if err != nil {
+			panic(err)
+		}
+		token := userOAuth.Token
+
+		data := struct {
+			Path string `json:"path"`
+		}{
+			Path: path,
+		}
+		dataBytes, err := json.Marshal(data)
+		if err != nil {
+			panic(err)
+		}
+
+		client := dropboxOAuth.Client(context.TODO(), &token)
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"https://api.dropboxapi.com/2/files/list_folder",
+			bytes.NewReader(dataBytes))
+		if err != nil {
+			panic(err)
+		}
+		req.Header.Add("Content-Type", "application/json")
+		res, err := client.Do(req)
+		if err != nil {
+			panic(err)
+		}
+		defer res.Body.Close()
+		io.Copy(w, res.Body)
+	}
+
 	r.HandleFunc("/oauth/dropbox/connect", requireUserMW.ApplyFunc(dropboxRedirect))
 	r.HandleFunc("/oauth/dropbox/callback", requireUserMW.ApplyFunc(dropboxCallback))
+	r.HandleFunc("/oauth/dropbox/test", requireUserMW.ApplyFunc(dropboxQuery))
 
 	// ********* Static page *********
 	r.Handle("/", staticCtrl.HomeView).Methods("GET")
@@ -178,7 +221,9 @@ func main() {
 	r.Handle("/galleries/new", requireUserMW.Apply(galleriesCtrl.New)).Methods("GET")
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.Create)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesCtrl.Show).Methods("GET").Name(controllers.ShowGallery)
+
 	r.HandleFunc("/galleries/{id:[0-9]+}/edit", requireUserMW.ApplyFunc(galleriesCtrl.Edit)).Methods("GET").Name(controllers.EditGallery)
+
 	r.HandleFunc("/galleries/{id:[0-9]+}/update", requireUserMW.ApplyFunc(galleriesCtrl.Update)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", requireUserMW.ApplyFunc(galleriesCtrl.Delete)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images", requireUserMW.ApplyFunc(galleriesCtrl.ImageUpload)).Methods("POST")
