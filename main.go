@@ -31,10 +31,12 @@ func main() {
 		models.WithUser(config.Pepper, config.HMACKey),
 		models.WithGallery(),
 		models.WithImage(),
+		models.WithOAuth(),
 	)
 	if err != nil {
 		panic(err)
 	}
+
 	defer services.Close()
 	services.AutoMigrate()
 	// services.DestructiveReset()
@@ -100,6 +102,7 @@ func main() {
 	}
 
 	dropboxCallback := func(w http.ResponseWriter, r *http.Request) {
+
 		r.ParseForm()
 
 		state := r.FormValue("state")
@@ -124,13 +127,35 @@ func main() {
 			return
 		}
 
+		user := middlewares.LookUpUserFromContext(r.Context())
+		exist, err := services.OAuth.Find(user.ID, models.OAuthDropbox)
+		if err == models.ErrNotFound {
+			// Nothing to do
+		} else if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		} else {
+			// Delete the existing one
+			services.OAuth.Delete(exist.ID)
+		}
+
+		userOAuth := models.OAuth{
+			UserID:  user.ID,
+			Token:   *token,
+			Service: models.OAuthDropbox,
+		}
+		err = services.OAuth.Create(&userOAuth)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		fmt.Fprintf(w, "%+v", token)
 
 		fmt.Fprintln(w, "code: ", r.FormValue("code"), " state: ", r.FormValue("state"))
 	}
 
-	r.HandleFunc("/oauth/dropbox/connect", dropboxRedirect)
-	r.HandleFunc("/oauth/dropbox/callback", dropboxCallback)
+	r.HandleFunc("/oauth/dropbox/connect", requireUserMW.ApplyFunc(dropboxRedirect))
+	r.HandleFunc("/oauth/dropbox/callback", requireUserMW.ApplyFunc(dropboxCallback))
 
 	// ********* Static page *********
 	r.Handle("/", staticCtrl.HomeView).Methods("GET")
