@@ -1,15 +1,15 @@
 package controllers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
+	"jiji/dbx"
 	"jiji/middlewares"
 	"jiji/models"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/mux"
 
 	"golang.org/x/oauth2"
 
@@ -17,18 +17,26 @@ import (
 )
 
 type OAuth struct {
-	os           models.OAuthService
-	dropboxOAuth *oauth2.Config
+	os      models.OAuthService
+	configs map[string]*oauth2.Config
 }
 
-func NewOAuth(os models.OAuthService, dropboxConfig *oauth2.Config) *OAuth {
+func NewOAuth(os models.OAuthService, configs map[string]*oauth2.Config) *OAuth {
 	return &OAuth{
-		os:           os,
-		dropboxOAuth: dropboxConfig,
+		os:      os,
+		configs: configs,
 	}
 }
 
-func (oa *OAuth) DropboxConnect(w http.ResponseWriter, r *http.Request) {
+func (oa *OAuth) Connect(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	service := vars["service"]
+	oauthConfig, ok := oa.configs[service]
+	if !ok {
+		http.Error(w, "Invalid OAuth2 Service", http.StatusBadRequest)
+		return
+	}
+
 	state := csrf.Token(r)
 	cookie := http.Cookie{
 		Name:     "oauth_state",
@@ -36,11 +44,20 @@ func (oa *OAuth) DropboxConnect(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, &cookie)
-	url := oa.dropboxOAuth.AuthCodeURL(state)
+
+	url := oauthConfig.AuthCodeURL(state)
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
-func (oa *OAuth) DropboxCallback(w http.ResponseWriter, r *http.Request) {
+func (oa *OAuth) Callback(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	service := vars["service"]
+	oauthConfig, ok := oa.configs[service]
+	if !ok {
+		http.Error(w, "Invalid OAuth2 Service", http.StatusBadRequest)
+		return
+	}
+
 	r.ParseForm()
 
 	state := r.FormValue("state")
@@ -59,14 +76,14 @@ func (oa *OAuth) DropboxCallback(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, cookie)
 
 	code := r.FormValue("code")
-	token, err := oa.dropboxOAuth.Exchange(context.TODO(), code)
+	token, err := oauthConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	user := middlewares.LookUpUserFromContext(r.Context())
-	exist, err := oa.os.Find(user.ID, models.OAuthDropbox)
+	exist, err := oa.os.Find(user.ID, service)
 	if err == models.ErrNotFound {
 		// Nothing to do
 	} else if err != nil {
@@ -80,7 +97,7 @@ func (oa *OAuth) DropboxCallback(w http.ResponseWriter, r *http.Request) {
 	userOAuth := models.OAuth{
 		UserID:  user.ID,
 		Token:   *token,
-		Service: models.OAuthDropbox,
+		Service: service,
 	}
 	err = oa.os.Create(&userOAuth)
 	if err != nil {
@@ -93,39 +110,73 @@ func (oa *OAuth) DropboxCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (oa *OAuth) DropboxTest(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	service := vars["service"]
+	// oauthConfig, ok := oa.configs[service]
+	// if !ok {
+	// 	http.Error(w, "Invalid OAuth2 Service", http.StatusBadRequest)
+	// 	return
+	// }
+
 	r.ParseForm()
 	path := r.FormValue("path")
 
 	user := middlewares.LookUpUserFromContext(r.Context())
-	userOAuth, err := oa.os.Find(user.ID, models.OAuthDropbox)
+	userOAuth, err := oa.os.Find(user.ID, service)
 	if err != nil {
 		panic(err)
 	}
 	token := userOAuth.Token
 
-	data := struct {
-		Path string `json:"path"`
-	}{
-		Path: path,
-	}
-	dataBytes, err := json.Marshal(data)
+	folders, files, err := dbx.GetList(token.AccessToken, path)
 	if err != nil {
 		panic(err)
 	}
 
-	client := oa.dropboxOAuth.Client(context.TODO(), &token)
-	req, err := http.NewRequest(
-		http.MethodPost,
-		"https://api.dropboxapi.com/2/files/list_folder",
-		bytes.NewReader(dataBytes))
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer res.Body.Close()
-	io.Copy(w, res.Body)
+	// config := dropbox.Config{
+	// 	Token: token.AccessToken,
+	// }
+	// dbx := files.New(config)
+
+	// result, err := dbx.ListFolder(&files.ListFolderArg{
+	// 	Path: path,
+	// })
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// for _, entry := range result.Entries {
+	// 	switch meta := entry.(type) {
+	// 	case *files.FolderMetadata:
+	// 		fmt.Fprintln(w, "FolderMetadata: ", meta)
+	// 	case *files.FileMetadata:
+	// 		fmt.Fprintln(w, "FileMetadata: ", meta)
+	// 	}
+	// }
+
+	// data := struct {
+	// 	Path string `json:"path"`
+	// }{
+	// 	Path: path,
+	// }
+	// dataBytes, err := json.Marshal(data)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// client := oauthConfig.Client(context.TODO(), &token)
+	// req, err := http.NewRequest(
+	// 	http.MethodPost,
+	// 	"https://api.dropboxapi.com/2/files/list_folder",
+	// 	bytes.NewReader(dataBytes))
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// req.Header.Add("Content-Type", "application/json")
+	// res, err := client.Do(req)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer res.Body.Close()
+	// io.Copy(w, res.Body)
 }

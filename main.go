@@ -47,8 +47,10 @@ func main() {
 		email.WithMailgun(mailgunConfig.Domain, mailgunConfig.APIKey, mailgunConfig.PublicAPIKey),
 	)
 
-	// OAuth dropbox
-	dropboxOAuth := &oauth2.Config{
+	// OAuth config
+	oauthConfigs := make(map[string]*oauth2.Config)
+
+	oauthConfigs[models.OAuthDropbox] = &oauth2.Config{
 		ClientID:     config.Dropbox.ID,
 		ClientSecret: config.Dropbox.Secret,
 		Endpoint: oauth2.Endpoint{
@@ -73,7 +75,7 @@ func main() {
 	staticCtrl := controllers.NewStatic()
 	usersCtrl := controllers.NewUsers(services.User, emailer)
 	galleriesCtrl := controllers.NewGalleries(services.Gallery, services.Image, r)
-	oauthsCtrl := controllers.NewOAuth(services.OAuth, dropboxOAuth)
+	oauthsCtrl := controllers.NewOAuth(services.OAuth, oauthConfigs)
 
 	// ********* Middlewares *********
 	userMW := middlewares.User{
@@ -106,9 +108,9 @@ func main() {
 	r.HandleFunc("/reset", usersCtrl.CompleteReset).Methods("POST")
 
 	// ********* OAuth *********
-	r.HandleFunc("/oauth/dropbox/connect", requireUserMW.ApplyFunc(oauthsCtrl.DropboxConnect))
-	r.HandleFunc("/oauth/dropbox/callback", requireUserMW.ApplyFunc(oauthsCtrl.DropboxCallback))
-	r.HandleFunc("/oauth/dropbox/test", requireUserMW.ApplyFunc(oauthsCtrl.DropboxTest))
+	r.HandleFunc("/oauth/{service:[a-zA-Z0-9]+}/connect", requireUserMW.ApplyFunc(oauthsCtrl.Connect))
+	r.HandleFunc("/oauth/{service:[a-zA-Z0-9]+}/callback", requireUserMW.ApplyFunc(oauthsCtrl.Callback))
+	r.HandleFunc("/oauth/{service:[a-zA-Z0-9]+}/test", requireUserMW.ApplyFunc(oauthsCtrl.DropboxTest))
 
 	// ********* Galleries *********
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.GetAllByUser)).Methods("GET")
