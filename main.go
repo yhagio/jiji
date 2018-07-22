@@ -123,6 +123,7 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}/update", requireUserMW.ApplyFunc(galleriesCtrl.Update)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", requireUserMW.ApplyFunc(galleriesCtrl.Delete)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images", requireUserMW.ApplyFunc(galleriesCtrl.ImageUpload)).Methods("POST")
+	r.HandleFunc("/galleries/{id:[0-9]+}/images/link", requireUserMW.ApplyFunc(galleriesCtrl.ImageViaLink)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", requireUserMW.ApplyFunc(galleriesCtrl.DeleteImage)).Methods("POST")
 
 	fmt.Printf("Starting the server on localhost:%d...\n", config.Port)

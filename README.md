@@ -56,9 +56,13 @@ go run *.go       # Starts the application
 godoc -http=:6060 # Documentation http://localhost:6060/pkg/jiji/
 ```
 
-### Dropbox SDK
-https://github.com/dropbox/dropbox-sdk-go-unofficial
+### OAuth2
+https://godoc.org/golang.org/x/oauth2
 
+### Dropbox SDK
+Unofficial Dropbox SDK: https://github.com/dropbox/dropbox-sdk-go-unofficial
+
+Chooser: https://www.dropbox.com/developers/chooser
 
 ### (Optional) Hot reloading
 
