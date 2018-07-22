@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"golang.org/x/oauth2"
 )
 
 func main() {
@@ -27,11 +28,14 @@ func main() {
 		models.WithLogMode(!config.IsProd()),
 		models.WithUser(config.Pepper, config.HMACKey),
 		models.WithGallery(),
+
 		models.WithImage(),
+		models.WithOAuth(),
 	)
 	if err != nil {
 		panic(err)
 	}
+
 	defer services.Close()
 	services.AutoMigrate()
 	// services.DestructiveReset()
@@ -42,6 +46,19 @@ func main() {
 		email.WithSender("JIJI Support", "support@"+mailgunConfig.Domain),
 		email.WithMailgun(mailgunConfig.Domain, mailgunConfig.APIKey, mailgunConfig.PublicAPIKey),
 	)
+
+	// OAuth config
+	oauthConfigs := make(map[string]*oauth2.Config)
+
+	oauthConfigs[models.OAuthDropbox] = &oauth2.Config{
+		ClientID:     config.Dropbox.ID,
+		ClientSecret: config.Dropbox.Secret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  config.Dropbox.AuthURL,
+			TokenURL: config.Dropbox.TokenURL,
+		},
+		RedirectURL: "http://localhost:3000/oauth/dropbox/callback",
+	}
 
 	r := mux.NewRouter()
 
@@ -58,6 +75,7 @@ func main() {
 	staticCtrl := controllers.NewStatic()
 	usersCtrl := controllers.NewUsers(services.User, emailer)
 	galleriesCtrl := controllers.NewGalleries(services.Gallery, services.Image, r)
+	oauthsCtrl := controllers.NewOAuth(services.OAuth, oauthConfigs)
 
 	// ********* Middlewares *********
 	userMW := middlewares.User{
@@ -66,12 +84,12 @@ func main() {
 	requireUserMW := middlewares.RequireUser{}
 
 	// CSRF
-	bytes, err := utils.GenerateRandomBytes(32)
+	generatedBytes, err := utils.GenerateRandomBytes(32)
 	if err != nil {
 		panic(err)
 	}
 	// If get CSRF token is invalid error, app is ruuning on localhost or non-https
-	csrfMW := csrf.Protect(bytes, csrf.Secure(config.IsProd()))
+	csrfMW := csrf.Protect(generatedBytes, csrf.Secure(config.IsProd()))
 
 	// ********* Static page *********
 	r.Handle("/", staticCtrl.HomeView).Methods("GET")
@@ -89,15 +107,23 @@ func main() {
 	r.HandleFunc("/reset", usersCtrl.ResetPassword).Methods("GET")
 	r.HandleFunc("/reset", usersCtrl.CompleteReset).Methods("POST")
 
+	// ********* OAuth *********
+	r.HandleFunc("/oauth/{service:[a-zA-Z0-9]+}/connect", requireUserMW.ApplyFunc(oauthsCtrl.Connect))
+	r.HandleFunc("/oauth/{service:[a-zA-Z0-9]+}/callback", requireUserMW.ApplyFunc(oauthsCtrl.Callback))
+	r.HandleFunc("/oauth/{service:[a-zA-Z0-9]+}/test", requireUserMW.ApplyFunc(oauthsCtrl.DropboxTest))
+
 	// ********* Galleries *********
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.GetAllByUser)).Methods("GET")
 	r.Handle("/galleries/new", requireUserMW.Apply(galleriesCtrl.New)).Methods("GET")
 	r.Handle("/galleries", requireUserMW.ApplyFunc(galleriesCtrl.Create)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesCtrl.Show).Methods("GET").Name(controllers.ShowGallery)
+
 	r.HandleFunc("/galleries/{id:[0-9]+}/edit", requireUserMW.ApplyFunc(galleriesCtrl.Edit)).Methods("GET").Name(controllers.EditGallery)
+
 	r.HandleFunc("/galleries/{id:[0-9]+}/update", requireUserMW.ApplyFunc(galleriesCtrl.Update)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", requireUserMW.ApplyFunc(galleriesCtrl.Delete)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images", requireUserMW.ApplyFunc(galleriesCtrl.ImageUpload)).Methods("POST")
+	r.HandleFunc("/galleries/{id:[0-9]+}/images/link", requireUserMW.ApplyFunc(galleriesCtrl.ImageViaLink)).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", requireUserMW.ApplyFunc(galleriesCtrl.DeleteImage)).Methods("POST")
 
 	fmt.Printf("Starting the server on localhost:%d...\n", config.Port)

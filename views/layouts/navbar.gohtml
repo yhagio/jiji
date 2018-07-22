@@ -29,6 +29,9 @@
 
     <div class="navbar-end">
       {{if .User }}
+        <a class="navbar-item" href="/oauth/dropbox/connect">
+          Connect Dropbox
+        </a>
         <form class="navbar-item" action="/logout" method="POST">
           {{csrfField}}
           <button type="submit" class="button is-primary">Log out</button>

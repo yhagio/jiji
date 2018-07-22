@@ -5,8 +5,11 @@ import (
 	"jiji/middlewares"
 	"jiji/models"
 	"jiji/views"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/gorilla/mux"
 )
@@ -188,6 +191,7 @@ func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/galleries", http.StatusFound)
 }
 
+// POST /galleries/:id/images
 func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
 	gallery, err := g.getGalleryById(w, r)
 	if err != nil {
@@ -223,6 +227,61 @@ func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	url, err := g.r.Get(EditGallery).URL("id", fmt.Sprintf("%v", gallery.ID))
+	if err != nil {
+		http.Redirect(w, r, "/galleries", http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, url.Path, http.StatusFound)
+}
+
+// POST /galleries/:id/images/link
+func (g *Galleries) ImageViaLink(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.getGalleryById(w, r)
+	if err != nil {
+		return
+	}
+
+	user := middlewares.LookUpUserFromContext(r.Context())
+	if gallery.UserId != user.ID {
+		http.Error(w, "You do not have permission to upload images to this gallery", http.StatusForbidden)
+		return
+	}
+
+	var vd views.Data
+	vd.Yield = gallery
+
+	err = r.ParseForm()
+	if err != nil {
+		vd.SetAlert(err)
+		g.EditView.Render(w, r, vd)
+		return
+	}
+	files := r.PostForm["files"]
+
+	// Wait Group:
+	// Wait until all images are downlaod + created done before redirect at the end
+	var wg sync.WaitGroup
+	wg.Add(len(files))
+	for _, fileURL := range files {
+		go func(fURL string) { // Go routine
+			defer wg.Done()
+			resp, err := http.Get(fURL)
+			if err != nil {
+				log.Println("Failed to download the image from:", fURL)
+				return
+			}
+			defer resp.Body.Close()
+			pieces := strings.Split(fURL, "/")
+			filename := pieces[len(pieces)-1]
+			err = g.is.Create(gallery.ID, resp.Body, filename)
+			if err != nil {
+				log.Println("Failed to create the image from:", fURL)
+			}
+		}(fileURL)
+	}
+	wg.Wait()
 
 	url, err := g.r.Get(EditGallery).URL("id", fmt.Sprintf("%v", gallery.ID))
 	if err != nil {

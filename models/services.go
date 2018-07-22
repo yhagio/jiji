@@ -6,6 +6,7 @@ type Services struct {
 	Gallery GalleryService
 	User    UserService
 	Image   ImageService
+	OAuth   OAuthService
 	db      *gorm.DB
 }
 
@@ -32,7 +33,7 @@ func (services *Services) Close() error {
 // For development, testing only
 // Recreate tables
 func (services *Services) DestructiveReset() error {
-	err := services.db.DropTableIfExists(&User{}, &Gallery{}, &passwordReset{}).Error
+	err := services.db.DropTableIfExists(&User{}, &Gallery{}, &OAuth{}, &passwordReset{}).Error
 	if err != nil {
 		return err
 	}
@@ -41,7 +42,7 @@ func (services *Services) DestructiveReset() error {
 
 // Auto-migrate tables
 func (services *Services) AutoMigrate() error {
-	err := services.db.AutoMigrate(&User{}, &Gallery{}, &passwordReset{}).Error
+	err := services.db.AutoMigrate(&User{}, &Gallery{}, &OAuth{}, &passwordReset{}).Error
 	if err != nil {
 		return err
 	}
@@ -86,6 +87,15 @@ func WithGallery() ServicesConfig {
 func WithImage() ServicesConfig {
 	return func(s *Services) error {
 		s.Image = NewImageService()
+		return nil
+	}
+}
+
+func WithOAuth() ServicesConfig {
+	return func(s *Services) error {
+		// TODO later (optional)
+		// Error handling in case s.db is nil
+		s.OAuth = NewOAuthService(s.db)
 		return nil
 	}
 }

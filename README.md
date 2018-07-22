@@ -33,6 +33,17 @@ Create a file `.config`
     "user": "jiji_dev_user",
     "password": "your-password",
     "name": "jiji_dev"
+  },
+  "mailgun": {
+    "api_key": "key-b9cc7d8sdf897sdfkjsdf87dsfjlk8sdf",
+    "public_api_key": "pubkey-2343249809823423jhjlksdfjhhf",
+    "domain": "yourdomain.mailgun.org"
+  },
+  "dropbox": {
+    "id": "sdf809sdn89dsf",
+    "secret": "dsf789ds8f89sff2da",
+    "auth_url": "https://www.dropbox.com/oauth2/authorize",
+    "token_url": "https://api.dropboxapi.com/oauth2/token"
   }
 }
 ```
@@ -44,6 +55,14 @@ go get            # Install dependencies
 go run *.go       # Starts the application
 godoc -http=:6060 # Documentation http://localhost:6060/pkg/jiji/
 ```
+
+### OAuth2
+https://godoc.org/golang.org/x/oauth2
+
+### Dropbox SDK
+Unofficial Dropbox SDK: https://github.com/dropbox/dropbox-sdk-go-unofficial
+
+Chooser: https://www.dropbox.com/developers/chooser
 
 ### (Optional) Hot reloading
 
