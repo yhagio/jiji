@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/yhagio/jiji/blob/master/LICENSE)
+
 # JIJI
 
 Web App built with Go and Postgres
